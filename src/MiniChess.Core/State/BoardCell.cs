@@ -1,0 +1,72 @@
+using System;
+using System.Collections.Generic;
+using MiniChess.Core.Common;
+using MiniChess.Core.Effects;
+
+namespace MiniChess.Core.State
+{
+    public class BoardCell
+    {
+        private static readonly int LayerCount = Enum.GetValues(typeof(CellEffectLayer)).Length;
+
+        /// <summary>레이어별 효과 슬롯. 인덱스 = (int)CellEffectLayer.</summary>
+        private readonly ICellEffect[] _effects = new ICellEffect[LayerCount];
+
+        public Position Position { get; }
+        public TerrainType Terrain { get; }
+
+        /// <summary>중앙 점령 목표 칸인지. 지형과 별개이며 장판 설치 등은 허용된다.</summary>
+        public bool IsCaptureTile { get; }
+
+        /// <summary>이 칸에 배치된 유닛. 없으면 null. 변경은 Board 를 통해서만 한다.</summary>
+        public Unit Occupant { get; internal set; }
+
+        public bool IsWall => Terrain == TerrainType.Wall;
+        public bool IsEmpty => Occupant == null;
+
+        public BoardCell(Position position, TerrainType terrain, bool isCaptureTile)
+        {
+            Position = position;
+            Terrain = terrain;
+            IsCaptureTile = isCaptureTile;
+        }
+
+        #region Cell Effects
+
+        /// <summary>해당 레이어의 효과. 없으면 null.</summary>
+        public ICellEffect GetEffect(CellEffectLayer layer)
+        {
+            return _effects[(int)layer];
+        }
+
+        public bool HasEffect(CellEffectLayer layer)
+        {
+            return GetEffect(layer) != null;
+        }
+
+        /// <summary>효과를 자신의 레이어에 설치한다. 같은 레이어의 기존 효과는 덮어쓴다.</summary>
+        public void SetEffect(ICellEffect effect)
+        {
+            if (effect == null) throw new ArgumentNullException(nameof(effect));
+
+            _effects[(int)effect.Layer] = effect;
+        }
+
+        public void RemoveEffect(CellEffectLayer layer)
+        {
+            _effects[(int)layer] = null;
+        }
+
+        /// <summary>설치된 효과를 레이어 순서(= 발동 순서)대로 반환한다.</summary>
+        public IEnumerable<ICellEffect> GetEffectsInOrder()
+        {
+            foreach (ICellEffect effect in _effects)
+            {
+                if (effect != null)
+                    yield return effect;
+            }
+        }
+
+        #endregion
+    }
+}
