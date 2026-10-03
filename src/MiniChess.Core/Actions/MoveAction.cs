@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using MiniChess.Core.Combat;
 using MiniChess.Core.Common;
 using MiniChess.Core.Movement;
 using MiniChess.Core.State;
@@ -52,6 +53,9 @@ namespace MiniChess.Core.Actions
 
             PlayerState player = state.GetPlayer(Unit.Team);
             player.Ap.TrySpend(GetCost(state, result.CellsMoved));
+
+            // 이동 중 칸 효과(덫 등)로 사망했을 수 있다.
+            DeathSystem.HandleIfDead(state, Unit);
 
             return result;
         }

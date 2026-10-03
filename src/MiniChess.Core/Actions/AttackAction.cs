@@ -1,0 +1,81 @@
+using System;
+using System.Collections.Generic;
+using MiniChess.Core.Combat;
+using MiniChess.Core.Common;
+using MiniChess.Core.State;
+
+namespace MiniChess.Core.Actions
+{
+    /// <summary>
+    /// 플레이어가 자기 유닛으로 적 유닛을 기본 공격하는 명령.
+    /// 벽은 공격을 막지 않으며 사거리만 판정한다.
+    /// </summary>
+    public class AttackAction
+    {
+        public Unit Attacker { get; }
+        public Unit Target { get; }
+
+        public AttackAction(Unit attacker, Unit target)
+        {
+            Attacker = attacker ?? throw new ArgumentNullException(nameof(attacker));
+            Target = target ?? throw new ArgumentNullException(nameof(target));
+        }
+
+        public AttackFailReason Validate(GameState state)
+        {
+            if (state.Phase != GamePhase.Battle) return AttackFailReason.NotBattlePhase;
+            if (Attacker.Team != state.CurrentTeam) return AttackFailReason.NotYourTurn;
+            if (!Attacker.IsPlaced || !Attacker.IsAlive) return AttackFailReason.AttackerNotOnBoard;
+            if (Attacker.HasActed) return AttackFailReason.AlreadyActed;
+            if (!Target.IsPlaced || !Target.IsAlive) return AttackFailReason.InvalidTarget;
+            if (Target.Team == Attacker.Team) return AttackFailReason.TargetNotEnemy;
+
+            if (!RangeCalculator.IsInRange(Attacker.Position.Value, Target.Position.Value, Attacker.Stats.AttackRange))
+                return AttackFailReason.OutOfRange;
+
+            if (!state.GetPlayer(Attacker.Team).Ap.CanSpend(state.Rules.ActionCost.BasicAttackCost))
+                return AttackFailReason.NotEnoughAp;
+
+            return AttackFailReason.None;
+        }
+
+        public AttackResult Execute(GameState state)
+        {
+            AttackFailReason reason = Validate(state);
+            if (reason != AttackFailReason.None)
+                throw new InvalidOperationException($"공격 불가: {reason}");
+
+            state.GetPlayer(Attacker.Team).Ap.TrySpend(state.Rules.ActionCost.BasicAttackCost);
+            Attacker.MarkActed();
+
+            int damage = Attacker.Stats.Attack;
+            Target.Stats.ApplyDamage(damage);
+            bool targetDied = DeathSystem.HandleIfDead(state, Target);
+
+            return new AttackResult(Attacker, Target, damage, targetDied);
+        }
+
+        /// <summary>
+        /// attacker 의 사거리 안에 있는 살아 있는 적 유닛 목록.
+        /// 사거리만 판정하며, 턴/행동 여부/AP 는 검사하지 않는다(범위 표시용).
+        /// </summary>
+        public static List<Unit> GetTargetsInRange(GameState state, Unit attacker)
+        {
+            var targets = new List<Unit>();
+            if (!attacker.IsPlaced)
+                return targets;
+
+            List<Position> positions = RangeCalculator.GetPositionsInRange(
+                state.Board, attacker.Position.Value, attacker.Stats.AttackRange);
+
+            foreach (Position position in positions)
+            {
+                Unit occupant = state.Board.GetCell(position).Occupant;
+                if (occupant != null && occupant.IsAlive && occupant.Team != attacker.Team)
+                    targets.Add(occupant);
+            }
+
+            return targets;
+        }
+    }
+}
