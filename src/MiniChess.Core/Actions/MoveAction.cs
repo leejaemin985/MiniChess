@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using MiniChess.Core.Combat;
 using MiniChess.Core.Common;
 using MiniChess.Core.Movement;
 using MiniChess.Core.State;
@@ -48,15 +47,16 @@ namespace MiniChess.Core.Actions
             if (reason != MoveFailReason.None)
                 throw new InvalidOperationException($"이동 불가: {reason}");
 
+            int eventStart = state.Events.Count;
+
             IReadOnlyList<Position> path = GetPath(state);
-            MovementResult result = MovementResolver.Resolve(state.Board, Unit, path);
+            MovementResult result = MovementResolver.Resolve(state, Unit, path);
 
             PlayerState player = state.GetPlayer(Unit.Team);
             player.Ap.TrySpend(GetCost(state, result.CellsMoved));
 
-            // 이동 중 칸 효과(덫 등)로 사망했을 수 있다.
-            DeathSystem.HandleIfDead(state, Unit);
-
+            // 칸 효과에 의한 사망은 DamageSystem 에서 이미 처리된다.
+            result.Events = state.Events.Since(eventStart);
             return result;
         }
 

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using MiniChess.Core.Common;
 using MiniChess.Core.Effects;
+using MiniChess.Core.Events;
 using MiniChess.Core.State;
 
 namespace MiniChess.Core.Movement
@@ -15,21 +16,23 @@ namespace MiniChess.Core.Movement
     {
         /// <summary>
         /// path 를 따라 유닛을 이동시킨다(현재 위치 제외, 도착 칸 포함).
-        /// 워프는 도착 칸 하나만 담아 넘긴다.
+        /// 워프는 도착 칸 하나만 담아 넘긴다. 한 칸 이동할 때마다 UnitMovedEvent 를 기록한다.
         ///
         /// 다음 경우 그 자리에서 멈춘다.
         ///   - 다음 칸에 들어갈 수 없음(벽/유닛/범위 밖) → 들어가기 전 칸에서 멈춤
         ///   - 칸 효과가 Stop 을 반환 → 그 칸에서 멈춤
         ///   - 칸 효과로 유닛이 사망 → 그 칸에서 멈춤
         /// </summary>
-        public static MovementResult Resolve(Board board, Unit unit, IReadOnlyList<Position> path)
+        internal static MovementResult Resolve(GameState state, Unit unit, IReadOnlyList<Position> path)
         {
-            if (board == null) throw new ArgumentNullException(nameof(board));
+            if (state == null) throw new ArgumentNullException(nameof(state));
             if (unit == null) throw new ArgumentNullException(nameof(unit));
             if (path == null) throw new ArgumentNullException(nameof(path));
             if (!unit.IsPlaced) throw new InvalidOperationException($"유닛 {unit.Id} 는 보드 위에 없음");
 
+            Board board = state.Board;
             Position from = unit.Position.Value;
+            Position lastPosition = from;
             int cellsMoved = 0;
             bool stopRequested = false;
 
@@ -38,25 +41,28 @@ namespace MiniChess.Core.Movement
                 if (!board.CanPlace(next))
                     break;
 
+                Position previous = unit.Position.Value;
                 board.Relocate(unit, next);
+                state.Events.Record(new UnitMovedEvent(unit, previous, next));
+                lastPosition = next;
                 cellsMoved++;
 
-                stopRequested = TriggerEnter(board, unit);
+                stopRequested = TriggerEnter(state, unit);
                 if (stopRequested || !unit.IsAlive)
                     break;
             }
 
             if (cellsMoved > 0 && unit.IsAlive)
-                TriggerStop(board, unit);
+                TriggerStop(state, unit);
 
             bool wasInterrupted = cellsMoved < path.Count;
-            return new MovementResult(unit, from, unit.Position ?? from, cellsMoved, wasInterrupted);
+            return new MovementResult(unit, from, unit.Position ?? lastPosition, cellsMoved, wasInterrupted);
         }
 
         /// <summary>현재 칸의 모든 효과에 OnEnter 를 호출한다. 하나라도 Stop 이면 true.</summary>
-        private static bool TriggerEnter(Board board, Unit unit)
+        private static bool TriggerEnter(GameState state, Unit unit)
         {
-            CellEffectContext context = CreateContext(board, unit);
+            CellEffectContext context = CreateContext(state, unit);
             bool stopRequested = false;
 
             // 발동 중 효과가 제거/교체될 수 있으므로 목록을 먼저 복사한다.
@@ -73,9 +79,9 @@ namespace MiniChess.Core.Movement
             return stopRequested;
         }
 
-        private static void TriggerStop(Board board, Unit unit)
+        private static void TriggerStop(GameState state, Unit unit)
         {
-            CellEffectContext context = CreateContext(board, unit);
+            CellEffectContext context = CreateContext(state, unit);
 
             foreach (ICellEffect effect in context.Cell.GetEffectsInOrder().ToList())
             {
@@ -86,10 +92,10 @@ namespace MiniChess.Core.Movement
             }
         }
 
-        private static CellEffectContext CreateContext(Board board, Unit unit)
+        private static CellEffectContext CreateContext(GameState state, Unit unit)
         {
-            BoardCell cell = board.GetCell(unit.Position.Value);
-            return new CellEffectContext(board, cell, unit);
+            BoardCell cell = state.Board.GetCell(unit.Position.Value);
+            return new CellEffectContext(state, cell, unit);
         }
     }
 }

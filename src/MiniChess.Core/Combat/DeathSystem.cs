@@ -1,4 +1,5 @@
 using MiniChess.Core.Common;
+using MiniChess.Core.Events;
 using MiniChess.Core.State;
 
 namespace MiniChess.Core.Combat
@@ -11,6 +12,7 @@ namespace MiniChess.Core.Combat
         /// <summary>
         /// 유닛이 죽었으면 보드에서 제거하고 경기 종료 여부를 판정한다.
         /// 죽은 유닛이면 true. 플레이어의 유닛 목록에는 남겨둔다(부활 대상 보존).
+        /// 이미 처리된 사망(보드에 없음)은 다시 기록하지 않는다.
         /// </summary>
         internal static bool HandleIfDead(GameState state, Unit unit)
         {
@@ -18,7 +20,11 @@ namespace MiniChess.Core.Combat
                 return false;
 
             if (unit.IsPlaced)
+            {
+                Position position = unit.Position.Value;
                 state.Board.Remove(unit);
+                state.Events.Record(new UnitDiedEvent(unit, position));
+            }
 
             CheckGameEnd(state);
             return true;
@@ -45,6 +51,8 @@ namespace MiniChess.Core.Combat
                 state.Winner = null;
             else
                 state.Winner = player1Eliminated ? Team.Player2 : Team.Player1;
+
+            state.Events.Record(new GameEndedEvent(state.Winner));
         }
     }
 }

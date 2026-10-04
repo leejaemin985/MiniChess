@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using MiniChess.Core.Combat;
 using MiniChess.Core.Common;
 using MiniChess.Core.Data;
+using MiniChess.Core.Events;
 
 namespace MiniChess.Core.State
 {
@@ -9,10 +11,17 @@ namespace MiniChess.Core.State
     public class GameState
     {
         private readonly Dictionary<Team, PlayerState> _players;
+        private readonly List<IDamageInterceptor> _damageInterceptors = new List<IDamageInterceptor>();
         private int _nextUnitId = 1;
 
         public GameRuleData Rules { get; }
         public Board Board { get; }
+
+        /// <summary>경기 중 발생한 상태 변화 기록.</summary>
+        public GameEventLog Events { get; } = new GameEventLog();
+
+        /// <summary>피해 적용 전에 끼어드는 규칙들(호위, 보호막 등). DamageSystem 이 Order 순으로 사용한다.</summary>
+        public IReadOnlyList<IDamageInterceptor> DamageInterceptors => _damageInterceptors;
 
         public GamePhase Phase { get; internal set; }
 
@@ -58,6 +67,18 @@ namespace MiniChess.Core.State
             var unit = new Unit(_nextUnitId++, team, baseStats);
             GetPlayer(team).AddUnit(unit);
             return unit;
+        }
+
+        internal void AddDamageInterceptor(IDamageInterceptor interceptor)
+        {
+            if (interceptor == null) throw new ArgumentNullException(nameof(interceptor));
+
+            _damageInterceptors.Add(interceptor);
+        }
+
+        internal bool RemoveDamageInterceptor(IDamageInterceptor interceptor)
+        {
+            return _damageInterceptors.Remove(interceptor);
         }
 
         /// <summary>게임 시작 시 AP 는 StartAp 만 적용한다. 회복은 각 플레이어의 다음 턴부터.</summary>

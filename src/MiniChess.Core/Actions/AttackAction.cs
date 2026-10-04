@@ -45,14 +45,15 @@ namespace MiniChess.Core.Actions
             if (reason != AttackFailReason.None)
                 throw new InvalidOperationException($"공격 불가: {reason}");
 
+            int eventStart = state.Events.Count;
+
             state.GetPlayer(Attacker.Team).Ap.TrySpend(state.Rules.ActionCost.BasicAttackCost);
             Attacker.MarkActed();
 
-            int damage = Attacker.Stats.Attack;
-            Target.Stats.ApplyDamage(damage);
-            bool targetDied = DeathSystem.HandleIfDead(state, Target);
+            var request = new DamageRequest(Attacker, Target, Attacker.Stats.Attack, DamageType.Direct);
+            DamageOutcome outcome = DamageSystem.Apply(state, request);
 
-            return new AttackResult(Attacker, Target, damage, targetDied);
+            return new AttackResult(Attacker, Target, outcome.AppliedAmount, outcome.Killed, state.Events.Since(eventStart));
         }
 
         /// <summary>

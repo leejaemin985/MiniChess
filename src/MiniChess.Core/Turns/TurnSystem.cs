@@ -1,6 +1,7 @@
 using System;
 using MiniChess.Core.Common;
 using MiniChess.Core.Data;
+using MiniChess.Core.Events;
 using MiniChess.Core.State;
 
 namespace MiniChess.Core.Turns
@@ -29,6 +30,8 @@ namespace MiniChess.Core.Turns
 
             // TODO: 턴 종료 처리(회복 → DoT → 장판 → 지속시간 감소 → 점령 판정)는 해당 시스템 구현 시 추가.
 
+            state.Events.Record(new TurnEndedEvent(state.CurrentTeam, state.TurnNumber));
+
             state.CurrentTeam = GetOpponent(state.CurrentTeam);
             state.TurnNumber++;
 
@@ -47,6 +50,8 @@ namespace MiniChess.Core.Turns
         private static void BeginTurn(GameState state)
         {
             PlayerState player = state.CurrentPlayer;
+
+            state.Events.Record(new TurnStartedEvent(state.CurrentTeam, state.TurnNumber));
 
             if (player.TurnsStarted > 0)
                 RecoverAp(player.Ap, state.Rules.Ap);
