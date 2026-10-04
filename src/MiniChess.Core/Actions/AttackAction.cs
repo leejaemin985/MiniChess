@@ -26,7 +26,8 @@ namespace MiniChess.Core.Actions
             if (state.Phase != GamePhase.Battle) return AttackFailReason.NotBattlePhase;
             if (Attacker.Team != state.CurrentTeam) return AttackFailReason.NotYourTurn;
             if (!Attacker.IsPlaced || !Attacker.IsAlive) return AttackFailReason.AttackerNotOnBoard;
-            if (Attacker.HasActed) return AttackFailReason.AlreadyActed;
+            if (Attacker.TurnState.ActionsEnded) return AttackFailReason.ActionsEnded;
+            if (Attacker.TurnState.CombatActionUsed) return AttackFailReason.AlreadyActed;
             if (!Target.IsPlaced || !Target.IsAlive) return AttackFailReason.InvalidTarget;
             if (Target.Team == Attacker.Team) return AttackFailReason.TargetNotEnemy;
 
@@ -48,7 +49,7 @@ namespace MiniChess.Core.Actions
             int eventStart = state.Events.Count;
 
             state.GetPlayer(Attacker.Team).Ap.TrySpend(state.Rules.ActionCost.BasicAttackCost);
-            Attacker.MarkActed();
+            Attacker.TurnState.MarkCombatActionUsed();
 
             var request = new DamageRequest(Attacker, Target, Attacker.Stats.Attack, DamageType.Direct);
             DamageOutcome outcome = DamageSystem.Apply(state, request);

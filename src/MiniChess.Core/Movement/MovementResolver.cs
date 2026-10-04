@@ -9,8 +9,8 @@ using MiniChess.Core.State;
 namespace MiniChess.Core.Movement
 {
     /// <summary>
-    /// 경로를 한 칸씩 진행하며 칸 효과를 발동시킨다. 걷기/넉백/당기기/워프 공통.
-    /// 누가 이동을 시켰는지, AP 가 얼마인지는 알지 못한다.
+    /// 경로를 한 칸씩 진행하며 칸 효과를 발동시킨다. 걷기/돌진/넉백/당기기/워프 공통.
+    /// AP 와 행동 가능 여부는 알지 못한다(각 행동이 검사한다).
     /// </summary>
     public static class MovementResolver
     {
@@ -20,10 +20,14 @@ namespace MiniChess.Core.Movement
         ///
         /// 다음 경우 그 자리에서 멈춘다.
         ///   - 다음 칸에 들어갈 수 없음(벽/유닛/범위 밖) → 들어가기 전 칸에서 멈춤
-        ///   - 칸 효과가 Stop 을 반환 → 그 칸에서 멈춤
+        ///   - 칸 효과가 Stop 을 반환 → 그 칸에서 멈춤 (ignoreStopRequests 면 계속 진행)
         ///   - 칸 효과로 유닛이 사망 → 그 칸에서 멈춤
         /// </summary>
-        internal static MovementResult Resolve(GameState state, Unit unit, IReadOnlyList<Position> path)
+        /// <param name="initiator">이동을 일으킨 유닛. 자신이면 자발적 이동으로 보고 이번 턴 이동 칸 수에 누적한다.</param>
+        /// <param name="kind">이동 방식(이벤트 기록 및 정책 판정용).</param>
+        /// <param name="ignoreStopRequests">칸 효과의 Stop 요청을 무시하고 계속 진행한다(돌진 등). 효과 자체는 발동한다.</param>
+        internal static MovementResult Resolve(
+            GameState state, Unit unit, Unit initiator, MoveKind kind, IReadOnlyList<Position> path, bool ignoreStopRequests = false)
         {
             if (state == null) throw new ArgumentNullException(nameof(state));
             if (unit == null) throw new ArgumentNullException(nameof(unit));
@@ -34,7 +38,6 @@ namespace MiniChess.Core.Movement
             Position from = unit.Position.Value;
             Position lastPosition = from;
             int cellsMoved = 0;
-            bool stopRequested = false;
 
             foreach (Position next in path)
             {
@@ -43,14 +46,17 @@ namespace MiniChess.Core.Movement
 
                 Position previous = unit.Position.Value;
                 board.Relocate(unit, next);
-                state.Events.Record(new UnitMovedEvent(unit, previous, next));
+                state.Events.Record(new UnitMovedEvent(unit, previous, next, kind, initiator));
                 lastPosition = next;
                 cellsMoved++;
 
-                stopRequested = TriggerEnter(state, unit);
+                bool stopRequested = TriggerEnter(state, unit) && !ignoreStopRequests;
                 if (stopRequested || !unit.IsAlive)
                     break;
             }
+
+            if (cellsMoved > 0 && MovementControl.IsVoluntary(unit, initiator))
+                unit.TurnState.AddVoluntaryCellsMoved(cellsMoved);
 
             if (cellsMoved > 0 && unit.IsAlive)
                 TriggerStop(state, unit);

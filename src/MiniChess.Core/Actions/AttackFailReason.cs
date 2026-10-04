@@ -9,6 +9,7 @@ namespace MiniChess.Core.Actions
         /// <summary>공격하는 유닛이 보드 위에 없거나 사망.</summary>
         AttackerNotOnBoard,
 
+        /// <summary>전투 행동 후라 자발적 이동/추가 전투 행동 불가.</summary>
         AlreadyActed,
 
         /// <summary>대상이 보드 위에 없거나 사망.</summary>
@@ -17,5 +18,8 @@ namespace MiniChess.Core.Actions
         TargetNotEnemy,
         OutOfRange,
         NotEnoughAp,
+
+        /// <summary>이번 턴에 더 이상 행동할 수 없는 유닛(예: 분신 소환 직후).</summary>
+        ActionsEnded,
     }
 }

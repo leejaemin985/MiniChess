@@ -26,7 +26,12 @@ namespace MiniChess.Core.Actions
             if (state.Phase != GamePhase.Battle) return MoveFailReason.NotBattlePhase;
             if (Unit.Team != state.CurrentTeam) return MoveFailReason.NotYourTurn;
             if (!Unit.IsPlaced || !Unit.IsAlive) return MoveFailReason.UnitNotOnBoard;
-            if (Unit.HasActed) return MoveFailReason.AlreadyActed;
+
+            switch (MovementControl.Check(state, Unit, Unit, MoveKind.Path))
+            {
+                case MoveBlockReason.ActionsEnded: return MoveFailReason.ActionsEnded;
+                case MoveBlockReason.VoluntaryMoveLocked: return MoveFailReason.AlreadyActed;
+            }
 
             IReadOnlyList<Position> path = GetPath(state);
             if (path.Count == 0) return MoveFailReason.NotStraightLine;
@@ -50,7 +55,7 @@ namespace MiniChess.Core.Actions
             int eventStart = state.Events.Count;
 
             IReadOnlyList<Position> path = GetPath(state);
-            MovementResult result = MovementResolver.Resolve(state, Unit, path);
+            MovementResult result = MovementResolver.Resolve(state, Unit, Unit, MoveKind.Path, path);
 
             PlayerState player = state.GetPlayer(Unit.Team);
             player.Ap.TrySpend(GetCost(state, result.CellsMoved));

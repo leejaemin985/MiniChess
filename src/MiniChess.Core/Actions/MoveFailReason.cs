@@ -6,6 +6,8 @@ namespace MiniChess.Core.Actions
         NotBattlePhase,
         NotYourTurn,
         UnitNotOnBoard,
+
+        /// <summary>전투 행동 후라 자발적 이동/추가 전투 행동 불가.</summary>
         AlreadyActed,
 
         /// <summary>상하좌우 직선이 아니거나 제자리.</summary>
@@ -15,5 +17,8 @@ namespace MiniChess.Core.Actions
         PathBlocked,
 
         NotEnoughAp,
+
+        /// <summary>이번 턴에 더 이상 행동할 수 없는 유닛(예: 분신 소환 직후).</summary>
+        ActionsEnded,
     }
 }

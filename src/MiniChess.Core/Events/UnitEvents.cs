@@ -1,21 +1,30 @@
 using MiniChess.Core.Combat;
 using MiniChess.Core.Common;
+using MiniChess.Core.Movement;
 using MiniChess.Core.State;
 
 namespace MiniChess.Core.Events
 {
-    /// <summary>유닛이 한 칸 이동했다. 여러 칸 이동은 칸마다 기록된다.</summary>
+    /// <summary>유닛이 한 칸 이동했다. 여러 칸 이동은 칸마다 기록된다(워프는 한 번).</summary>
     public class UnitMovedEvent : GameEvent
     {
         public Unit Unit { get; }
         public Position From { get; }
         public Position To { get; }
+        public MoveKind Kind { get; }
 
-        public UnitMovedEvent(Unit unit, Position from, Position to)
+        /// <summary>이동을 일으킨 유닛. 출처가 유닛이 아니면 null.</summary>
+        public Unit Initiator { get; }
+
+        public bool IsVoluntary => MovementControl.IsVoluntary(Unit, Initiator);
+
+        public UnitMovedEvent(Unit unit, Position from, Position to, MoveKind kind, Unit initiator)
         {
             Unit = unit;
             From = from;
             To = to;
+            Kind = kind;
+            Initiator = initiator;
         }
     }
 
