@@ -29,8 +29,8 @@ namespace MiniChess.Core.Statuses
 
         public StatusTiming(TurnStep step, TimingOwner owner, bool includeApplicationTurn)
         {
-            if (step == TurnStep.StartApRecovery)
-                throw new ArgumentException("StartApRecovery 는 시스템 전용 단계라 효과 시점으로 쓸 수 없음", nameof(step));
+            if (step == TurnStep.StartApRecovery || step == TurnStep.StartCapture)
+                throw new ArgumentException($"{step} 는 시스템 전용 단계라 효과 시점으로 쓸 수 없음", nameof(step));
 
             Step = step;
             Owner = owner;

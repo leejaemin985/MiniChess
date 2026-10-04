@@ -7,7 +7,7 @@ namespace MiniChess.Core.Combat
 {
     /// <summary>
     /// 모든 피해/회복의 단일 처리 경로.
-    /// 처리 순서: 가로채기(Order 순) → HP 적용 → 이벤트 기록 → 사망·승패 판정.
+    /// 처리 순서: 가로채기(Order 순) → 보호막 흡수 → HP 적용 → 이벤트 기록 → 사망·승패 판정.
     /// </summary>
     public static class DamageSystem
     {
@@ -25,15 +25,34 @@ namespace MiniChess.Core.Combat
             foreach (IDamageInterceptor interceptor in state.DamageInterceptors.OrderBy(i => i.Order))
                 amount = Math.Max(0, interceptor.Intercept(state, request, amount));
 
+            // [가정] 보호막은 피해 종류와 무관하게, 가로채기(호위 등)가 끝난 뒤의 피해를 흡수한다.
+            int absorbed = target.Stats.AbsorbWithShield(amount);
+            amount -= absorbed;
+
             int hpBefore = target.Stats.CurrentHp;
             target.Stats.ApplyDamage(amount);
             int applied = hpBefore - target.Stats.CurrentHp;
 
             state.Events.Record(new UnitDamagedEvent(
-                request.Source, target, request.Type, request.Amount, applied, target.Stats.CurrentHp));
+                request.Source, target, request.Type, request.Amount, applied, target.Stats.CurrentHp, absorbed));
+            if (absorbed > 0)
+                state.Events.Record(new UnitShieldChangedEvent(target, target.Stats.Shield));
 
             bool killed = DeathSystem.HandleIfDead(state, target);
             return new DamageOutcome(applied, killed);
+        }
+
+        /// <summary>보호막을 더한다. 보드 위에 살아 있는 대상만 처리한다.</summary>
+        internal static void AddShield(GameState state, Unit target, int amount)
+        {
+            if (state == null) throw new ArgumentNullException(nameof(state));
+            if (target == null) throw new ArgumentNullException(nameof(target));
+
+            if (!target.IsAlive || !target.IsPlaced || amount <= 0)
+                return;
+
+            target.Stats.AddShield(amount);
+            state.Events.Record(new UnitShieldChangedEvent(target, target.Stats.Shield));
         }
 
         /// <summary>회복을 적용한다. 보드 위에 살아 있는 대상만 처리한다.</summary>

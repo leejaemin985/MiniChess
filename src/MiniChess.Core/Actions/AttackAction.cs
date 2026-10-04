@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using MiniChess.Core.Combat;
 using MiniChess.Core.Common;
 using MiniChess.Core.State;
+using MiniChess.Core.Statuses;
 
 namespace MiniChess.Core.Actions
 {
@@ -53,8 +54,24 @@ namespace MiniChess.Core.Actions
 
             var request = new DamageRequest(Attacker, Target, Attacker.Stats.Attack, DamageType.Direct);
             DamageOutcome outcome = DamageSystem.Apply(state, request);
+            ApplyOnHitStatuses(state);
 
             return new AttackResult(Attacker, Target, outcome.AppliedAmount, outcome.Killed, state.Events.Since(eventStart));
+        }
+
+        /// <summary>
+        /// 팀 버프로 얻은 "기본 공격 적중 시 상태"를 대상에게 건다.
+        /// [가정] 피해가 보호막에 모두 흡수되어도 적중으로 본다. 대상이 죽었거나 경기가 끝났으면 걸지 않는다.
+        /// </summary>
+        private void ApplyOnHitStatuses(GameState state)
+        {
+            foreach (StatusDefinition status in state.GetPlayer(Attacker.Team).BasicAttackStatuses)
+            {
+                if (state.IsGameOver || !Target.IsAlive || !Target.IsPlaced)
+                    return;
+
+                StatusSystem.Apply(state, status, Target, Attacker);
+            }
         }
 
         /// <summary>

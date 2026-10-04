@@ -44,7 +44,11 @@ namespace MiniChess.Core.Events
 
         public int HpAfter { get; }
 
-        public UnitDamagedEvent(Unit source, Unit target, DamageType type, int requestedAmount, int appliedAmount, int hpAfter)
+        /// <summary>보호막이 흡수한 양.</summary>
+        public int ShieldAbsorbed { get; }
+
+        public UnitDamagedEvent(
+            Unit source, Unit target, DamageType type, int requestedAmount, int appliedAmount, int hpAfter, int shieldAbsorbed = 0)
         {
             Source = source;
             Target = target;
@@ -52,6 +56,7 @@ namespace MiniChess.Core.Events
             RequestedAmount = requestedAmount;
             AppliedAmount = appliedAmount;
             HpAfter = hpAfter;
+            ShieldAbsorbed = shieldAbsorbed;
         }
     }
 

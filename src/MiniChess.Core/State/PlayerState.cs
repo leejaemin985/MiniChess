@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using MiniChess.Core.Common;
 using MiniChess.Core.Data;
+using MiniChess.Core.Statuses;
 
 namespace MiniChess.Core.State
 {
@@ -10,6 +11,7 @@ namespace MiniChess.Core.State
     {
         /// <summary>죽은 유닛도 포함한다(부활 대상 보존). 보드에서만 제거된다.</summary>
         private readonly List<Unit> _units = new List<Unit>();
+        private readonly List<StatusDefinition> _basicAttackStatuses = new List<StatusDefinition>();
 
         public Team Team { get; }
 
@@ -21,6 +23,9 @@ namespace MiniChess.Core.State
 
         public IReadOnlyList<Unit> Units => _units;
         public IEnumerable<Unit> AliveUnits => _units.Where(unit => unit.IsAlive);
+
+        /// <summary>이 팀의 기본 공격이 적중하면 대상에게 거는 상태(점령 보상 등으로 얻는 팀 버프).</summary>
+        public IReadOnlyList<StatusDefinition> BasicAttackStatuses => _basicAttackStatuses;
 
         /// <summary>유닛이 1개 이상 있고, 그중 살아 있는 유닛이 하나도 없으면 전멸.</summary>
         /// <summary>
@@ -67,6 +72,13 @@ namespace MiniChess.Core.State
                 throw new ArgumentException($"유닛 {unit.Id} 의 팀({unit.Team})이 플레이어 팀({Team})과 다름", nameof(unit));
 
             _units.Add(unit);
+        }
+
+        internal void AddBasicAttackStatus(StatusDefinition status)
+        {
+            if (status == null) throw new ArgumentNullException(nameof(status));
+
+            _basicAttackStatuses.Add(status);
         }
     }
 }

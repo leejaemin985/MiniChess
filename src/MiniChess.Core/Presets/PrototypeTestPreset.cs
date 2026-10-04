@@ -1,9 +1,11 @@
 using System.Collections.Generic;
 using System.Linq;
+using MiniChess.Core.Capture;
 using MiniChess.Core.Characters;
 using MiniChess.Core.Common;
 using MiniChess.Core.Data;
 using MiniChess.Core.Skills;
+using MiniChess.Core.Statuses.Library;
 
 namespace MiniChess.Core.Presets
 {
@@ -38,11 +40,16 @@ namespace MiniChess.Core.Presets
                     UnitsPerTeam = 4,
                     FirstTeam = Team.Player1,
                 },
-                // [프로토타입] 명세 v0.1 3.5
+                // [프로토타입] 명세 v0.1 3.5. 판정 시점(자기 Turn Start)과 보상 종류는 사용자 확정, 보상 수치는 [가정]
                 Capture = new CaptureRuleData
                 {
-                    RequiredTurnEndCount = 2,
+                    RequiredTurnStartCount = 2,
                     ActiveFromStart = true,
+                    RewardPool = new List<CaptureReward>
+                    {
+                        new ShieldReward(amount: 3),
+                        new BasicAttackStatusReward(StatusLibrary.Burn(damagePerTrigger: 1, triggers: 2)),
+                    },
                 },
             };
         }
@@ -61,7 +68,7 @@ namespace MiniChess.Core.Presets
                     "2222222",
                     "2222222",
                     "...#...",
-                    "##.#.##",
+                    "#..C..#",
                     "...#...",
                     "1111111",
                     "1111111",

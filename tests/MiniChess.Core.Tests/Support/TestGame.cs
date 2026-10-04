@@ -24,7 +24,7 @@ namespace MiniChess.Core.Tests.Support
                 Ap = new ApRuleData { MaxAp = 6, StartAp = 4, TurnRecoveryAp = 4, CarryOver = true },
                 ActionCost = new ActionCostData { MoveCostPerCell = 1, BasicAttackCost = 2 },
                 Match = new MatchRuleData { UnitsPerTeam = 4, FirstTeam = Team.Player1 },
-                Capture = new CaptureRuleData { RequiredTurnEndCount = 2, ActiveFromStart = true },
+                Capture = new CaptureRuleData { RequiredTurnStartCount = 2, ActiveFromStart = true },
             };
         }
 

@@ -18,6 +18,9 @@ namespace MiniChess.Core.State
         public int Attack => Base.Attack;
         public int AttackRange => Base.AttackRange;
 
+        /// <summary>남은 보호막. HP 보다 먼저 피해를 흡수하며, 소모될 때까지 유지된다.</summary>
+        public int Shield { get; private set; }
+
         public bool IsAlive => CurrentHp > 0;
 
         public UnitStats(IReadOnlyUnitBaseStats baseStats)
@@ -32,6 +35,23 @@ namespace MiniChess.Core.State
             if (amount < 0) throw new ArgumentOutOfRangeException(nameof(amount));
 
             CurrentHp = Math.Max(0, CurrentHp - amount);
+        }
+
+        internal void AddShield(int amount)
+        {
+            if (amount < 0) throw new ArgumentOutOfRangeException(nameof(amount));
+
+            Shield += amount;
+        }
+
+        /// <summary>피해를 보호막으로 흡수한다. 흡수한 양을 반환한다.</summary>
+        internal int AbsorbWithShield(int amount)
+        {
+            if (amount < 0) throw new ArgumentOutOfRangeException(nameof(amount));
+
+            int absorbed = Math.Min(Shield, amount);
+            Shield -= absorbed;
+            return absorbed;
         }
 
         /// <summary>회복을 적용한다. HP 는 MaxHp 를 넘지 않는다.</summary>

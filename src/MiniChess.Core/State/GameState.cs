@@ -27,6 +27,12 @@ namespace MiniChess.Core.State
         /// <summary>피해 적용 전에 끼어드는 규칙들(호위, 보호막 등). DamageSystem 이 Order 순으로 사용한다.</summary>
         public IReadOnlyList<IDamageInterceptor> DamageInterceptors => _damageInterceptors;
 
+        /// <summary>점령 목표 상태.</summary>
+        public CaptureState Capture { get; }
+
+        /// <summary>규칙이 쓰는 무작위 값(점령 보상 선택 등). 테스트에서 고정값으로 바꿀 수 있다.</summary>
+        public IRandomSource Random { get; internal set; } = new SystemRandomSource();
+
         public GamePhase Phase { get; internal set; }
 
         /// <summary>현재 턴을 진행 중인 팀. Battle 단계에서만 의미가 있다.</summary>
@@ -49,6 +55,7 @@ namespace MiniChess.Core.State
             Rules = rules ?? throw new ArgumentNullException(nameof(rules));
             Board = new Board(map);
             Skills = skills ?? SkillCatalog.Empty;
+            Capture = CreateCapture(Board, rules.Capture);
 
             _players = new Dictionary<Team, PlayerState>
             {
@@ -84,6 +91,31 @@ namespace MiniChess.Core.State
         internal bool RemoveDamageInterceptor(IDamageInterceptor interceptor)
         {
             return _damageInterceptors.Remove(interceptor);
+        }
+
+        /// <summary>맵의 점령 칸(최대 1칸)으로 점령 상태를 만든다. 규칙이 없으면 비활성.</summary>
+        private static CaptureState CreateCapture(Board board, CaptureRuleData rule)
+        {
+            Position? tile = null;
+
+            for (int x = 0; x < board.Width; x++)
+            {
+                for (int y = 0; y < board.Height; y++)
+                {
+                    var position = new Position(x, y);
+                    if (!board.GetCell(position).IsCaptureTile)
+                        continue;
+
+                    if (tile.HasValue)
+                        throw new InvalidOperationException($"점령 칸은 맵에 최대 1칸: {tile.Value}, {position}");
+
+                    tile = position;
+                }
+            }
+
+            return rule == null
+                ? new CaptureState(tile, 0, active: false)
+                : new CaptureState(tile, rule.RequiredTurnStartCount, rule.ActiveFromStart);
         }
 
         /// <summary>게임 시작 시 AP 는 StartAp 만 적용한다. 회복은 각 플레이어의 다음 턴부터.</summary>

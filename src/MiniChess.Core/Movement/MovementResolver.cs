@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using MiniChess.Core.Capture;
 using MiniChess.Core.Common;
 using MiniChess.Core.Effects;
 using MiniChess.Core.Events;
@@ -60,6 +61,9 @@ namespace MiniChess.Core.Movement
 
             if (cellsMoved > 0 && unit.IsAlive)
                 TriggerStop(state, unit);
+
+            if (cellsMoved > 0)
+                CaptureSystem.OnOccupancyChanged(state);
 
             bool wasInterrupted = cellsMoved < path.Count;
             return new MovementResult(unit, from, unit.Position ?? lastPosition, cellsMoved, wasInterrupted);

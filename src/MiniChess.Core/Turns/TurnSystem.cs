@@ -1,4 +1,5 @@
 using System;
+using MiniChess.Core.Capture;
 using MiniChess.Core.Common;
 using MiniChess.Core.Data;
 using MiniChess.Core.Effects;
@@ -28,7 +29,6 @@ namespace MiniChess.Core.Turns
             TurnStep.EndDamageOverTime,
             TurnStep.EndAreaEffects,
             TurnStep.EndDurationTick,
-            TurnStep.EndCapture,
         };
 
         /// <summary>Setup 단계를 끝내고 Battle 단계로 넘어가 선공 팀의 첫 턴을 시작한다.</summary>
@@ -54,7 +54,6 @@ namespace MiniChess.Core.Turns
 
             foreach (TurnStep step in EndSteps)
             {
-                // TODO: EndCapture 의 점령 판정은 점령 시스템 구현 시 추가.
                 RunHooks(state, step, endingTeam);
                 if (state.IsGameOver)
                     return;
@@ -75,7 +74,7 @@ namespace MiniChess.Core.Turns
 
         /// <summary>
         /// 현재 팀의 턴 시작 처리.
-        /// AP 회복(첫 턴은 StartAp 만 적용) → 유닛 턴 상태 초기화 → 시작 단계 훅.
+        /// AP 회복(첫 턴은 StartAp 만 적용) → 유닛 턴 상태 초기화 → 시작 단계 훅 → 점령 판정.
         /// </summary>
         private static void BeginTurn(GameState state)
         {
@@ -97,6 +96,9 @@ namespace MiniChess.Core.Turns
                 if (state.IsGameOver)
                     return;
             }
+
+            // TurnStep.StartCapture: 시작 효과(예약 포격 등)로 점령 칸의 유닛이 사라졌을 수 있어 마지막에 판정한다.
+            CaptureSystem.OnTurnStart(state, state.CurrentTeam);
         }
 
         private static void RunHooks(GameState state, TurnStep step, Team activeTeam)

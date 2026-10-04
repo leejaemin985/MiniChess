@@ -15,8 +15,8 @@ namespace MiniChess.Core.State
         public Position Position { get; }
         public TerrainType Terrain { get; }
 
-        /// <summary>중앙 점령 목표 칸인지. 지형과 별개이며 장판 설치 등은 허용된다.</summary>
-        public bool IsCaptureTile { get; }
+        /// <summary>중앙 점령 목표 칸인지. 지형과 별개이며 장판 설치 등은 허용된다. 점령이 완료되면 소멸한다(false).</summary>
+        public bool IsCaptureTile { get; internal set; }
 
         /// <summary>이 칸에 배치된 유닛. 없으면 null. 변경은 Board 를 통해서만 한다.</summary>
         public Unit Occupant { get; internal set; }
