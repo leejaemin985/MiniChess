@@ -27,13 +27,16 @@ namespace MiniChess.Core.Actions
             if (Unit.Team != state.CurrentTeam) return MoveFailReason.NotYourTurn;
             if (!Unit.IsPlaced || !Unit.IsAlive) return MoveFailReason.UnitNotOnBoard;
 
-            switch (MovementControl.Check(state, Unit, Unit, MoveKind.Path))
+            IReadOnlyList<Position> path = GetPath(state);
+
+            switch (MovementControl.Check(state, Unit, Unit, MoveKind.Path, path.Count))
             {
                 case MoveBlockReason.ActionsEnded: return MoveFailReason.ActionsEnded;
                 case MoveBlockReason.VoluntaryMoveLocked: return MoveFailReason.AlreadyActed;
+                case MoveBlockReason.Rooted: return MoveFailReason.Rooted;
+                case MoveBlockReason.DistanceLimited: return MoveFailReason.DistanceLimited;
             }
 
-            IReadOnlyList<Position> path = GetPath(state);
             if (path.Count == 0) return MoveFailReason.NotStraightLine;
             if (!state.Board.IsPathClear(path)) return MoveFailReason.PathBlocked;
 

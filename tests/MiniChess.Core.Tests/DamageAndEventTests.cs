@@ -1,6 +1,7 @@
 using MiniChess.Core.Actions;
 using MiniChess.Core.Combat;
 using MiniChess.Core.Common;
+using MiniChess.Core.Effects;
 using MiniChess.Core.Events;
 using MiniChess.Core.Movement;
 using MiniChess.Core.State;
@@ -148,7 +149,7 @@ namespace MiniChess.Core.Tests
         {
             var (state, u) = new TestGame().Place(Team.Player1, 0, 0).Start();
             var trap = new TestCellEffect { StopOnEnter = true, Damage = 2 };
-            state.Board.GetCell(new Position(0, 2)).SetEffect(trap);
+            CellEffectSystem.Place(state, new Position(0, 2), trap);
 
             MovementResult result = new MoveAction(u[0], new Position(0, 4)).Execute(state);
 
@@ -167,7 +168,7 @@ namespace MiniChess.Core.Tests
                 .Place(Team.Player1, 6, 0)
                 .Place(Team.Player2, 6, 6)
                 .Start();
-            state.Board.GetCell(new Position(0, 2)).SetEffect(new TestCellEffect { Damage = 5 });
+            CellEffectSystem.Place(state, new Position(0, 2), new TestCellEffect { Damage = 5 });
 
             MovementResult result = new MoveAction(u[0], new Position(0, 4)).Execute(state);
 

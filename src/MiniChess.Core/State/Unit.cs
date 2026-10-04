@@ -1,10 +1,15 @@
+using System.Collections.Generic;
+using System.Linq;
 using MiniChess.Core.Common;
 using MiniChess.Core.Data;
+using MiniChess.Core.Statuses;
 
 namespace MiniChess.Core.State
 {
     public class Unit
     {
+        private readonly List<StatusEffect> _statuses = new List<StatusEffect>();
+
         public int Id { get; }
         public Team Team { get; }
         public UnitStats Stats { get; }
@@ -23,6 +28,29 @@ namespace MiniChess.Core.State
             Id = id;
             Team = team;
             Stats = new UnitStats(baseStats);
+        }
+
+        /// <summary>걸려 있는 상태효과(부여 순). 변경은 StatusSystem 을 통해서만 한다.</summary>
+        public IReadOnlyList<StatusEffect> Statuses => _statuses;
+
+        public StatusEffect FindStatus(string definitionId)
+        {
+            return _statuses.FirstOrDefault(status => status.Definition.Id == definitionId);
+        }
+
+        public bool HasStatus(StatusEffect status)
+        {
+            return _statuses.Contains(status);
+        }
+
+        internal void AddStatus(StatusEffect status)
+        {
+            _statuses.Add(status);
+        }
+
+        internal bool RemoveStatus(StatusEffect status)
+        {
+            return _statuses.Remove(status);
         }
 
         /// <summary>소유 플레이어의 턴 시작 시 호출한다.</summary>

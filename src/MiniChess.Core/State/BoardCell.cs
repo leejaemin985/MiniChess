@@ -44,15 +44,15 @@ namespace MiniChess.Core.State
             return GetEffect(layer) != null;
         }
 
-        /// <summary>효과를 자신의 레이어에 설치한다. 같은 레이어의 기존 효과는 덮어쓴다.</summary>
-        public void SetEffect(ICellEffect effect)
+        /// <summary>효과를 자신의 레이어에 설치한다. 같은 레이어의 기존 효과는 덮어쓴다. 규칙 검사/이벤트는 CellEffectSystem 이 한다.</summary>
+        internal void SetEffect(ICellEffect effect)
         {
             if (effect == null) throw new ArgumentNullException(nameof(effect));
 
             _effects[(int)effect.Layer] = effect;
         }
 
-        public void RemoveEffect(CellEffectLayer layer)
+        internal void RemoveEffect(CellEffectLayer layer)
         {
             _effects[(int)layer] = null;
         }

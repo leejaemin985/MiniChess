@@ -20,5 +20,11 @@ namespace MiniChess.Core.Actions
 
         /// <summary>이번 턴에 더 이상 행동할 수 없는 유닛(예: 분신 소환 직후).</summary>
         ActionsEnded,
+
+        /// <summary>속박 등 이동 불가 상태.</summary>
+        Rooted,
+
+        /// <summary>이동 거리 제한 상태의 한도 초과.</summary>
+        DistanceLimited,
     }
 }

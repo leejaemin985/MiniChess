@@ -1,5 +1,6 @@
 using MiniChess.Core.Actions;
 using MiniChess.Core.Common;
+using MiniChess.Core.Effects;
 using MiniChess.Core.Events;
 using MiniChess.Core.Movement;
 using MiniChess.Core.State;
@@ -38,7 +39,7 @@ namespace MiniChess.Core.Tests
                 .Start();
             new AttackAction(u[0], u[1]).Execute(state);
 
-            Assert.Equal(MoveBlockReason.None, MovementControl.Check(state, u[0], u[2], kind));
+            Assert.Equal(MoveBlockReason.None, MovementControl.Check(state, u[0], u[2], kind, 1));
 
             MovementResolver.Resolve(state, u[0], u[2], kind, new[] { new Position(1, 0) });
 
@@ -57,7 +58,7 @@ namespace MiniChess.Core.Tests
                 .Start();
             new AttackAction(u[0], u[1]).Execute(state);
 
-            Assert.Equal(MoveBlockReason.VoluntaryMoveLocked, MovementControl.Check(state, u[0], u[0], MoveKind.Warp));
+            Assert.Equal(MoveBlockReason.VoluntaryMoveLocked, MovementControl.Check(state, u[0], u[0], MoveKind.Warp, 1));
         }
 
         [Fact]
@@ -83,7 +84,7 @@ namespace MiniChess.Core.Tests
                 .Start();
             u[0].TurnState.EndActions();
 
-            Assert.Equal(MoveBlockReason.None, MovementControl.Check(state, u[0], u[1], MoveKind.Knockback));
+            Assert.Equal(MoveBlockReason.None, MovementControl.Check(state, u[0], u[1], MoveKind.Knockback, 1));
         }
 
         [Fact]
@@ -144,7 +145,7 @@ namespace MiniChess.Core.Tests
                 .Place(Team.Player2, 6, 6)
                 .Start();
             var trap = new TestCellEffect { StopOnEnter = true, Damage = 1 };
-            state.Board.GetCell(new Position(0, 1)).SetEffect(trap);
+            CellEffectSystem.Place(state, new Position(0, 1), trap);
 
             MovementResult result = MovementResolver.Resolve(
                 state, u[0], u[0], MoveKind.Dash, new[] { new Position(0, 1), new Position(0, 2) }, ignoreStopRequests: true);

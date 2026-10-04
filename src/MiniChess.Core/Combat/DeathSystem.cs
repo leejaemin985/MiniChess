@@ -1,6 +1,7 @@
 using MiniChess.Core.Common;
 using MiniChess.Core.Events;
 using MiniChess.Core.State;
+using MiniChess.Core.Statuses;
 
 namespace MiniChess.Core.Combat
 {
@@ -24,6 +25,7 @@ namespace MiniChess.Core.Combat
                 Position position = unit.Position.Value;
                 state.Board.Remove(unit);
                 state.Events.Record(new UnitDiedEvent(unit, position));
+                StatusSystem.RemoveAll(state, unit, StatusRemoveReason.TargetDied);
             }
 
             CheckGameEnd(state);

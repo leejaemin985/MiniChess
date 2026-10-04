@@ -10,5 +10,11 @@ namespace MiniChess.Core.Movement
 
         /// <summary>전투 행동 후의 자발적 이동.</summary>
         VoluntaryMoveLocked,
+
+        /// <summary>속박 등 이동 불가 상태.</summary>
+        Rooted,
+
+        /// <summary>이동 거리 제한 상태(볼라 등)의 한도 초과.</summary>
+        DistanceLimited,
     }
 }

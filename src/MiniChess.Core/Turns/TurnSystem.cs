@@ -1,14 +1,36 @@
 using System;
 using MiniChess.Core.Common;
 using MiniChess.Core.Data;
+using MiniChess.Core.Effects;
 using MiniChess.Core.Events;
 using MiniChess.Core.State;
+using MiniChess.Core.Statuses;
 
 namespace MiniChess.Core.Turns
 {
-    /// <summary>Battle 단계의 턴 진행(시작/종료/교대)을 담당한다.</summary>
+    /// <summary>
+    /// Battle 단계의 턴 진행(시작/종료/교대)을 담당한다.
+    /// 각 TurnStep 을 순서대로 처리하며, 단계마다 상태효과 → 칸 효과 순으로 훅을 실행한다.
+    /// 처리 중 경기가 끝나면 남은 단계와 다음 턴 시작을 진행하지 않는다.
+    /// </summary>
     public static class TurnSystem
     {
+        private static readonly TurnStep[] StartSteps =
+        {
+            TurnStep.StartPositiveEffects,
+            TurnStep.StartRestrictionCheck,
+            TurnStep.StartScheduledEffects,
+        };
+
+        private static readonly TurnStep[] EndSteps =
+        {
+            TurnStep.EndHeal,
+            TurnStep.EndDamageOverTime,
+            TurnStep.EndAreaEffects,
+            TurnStep.EndDurationTick,
+            TurnStep.EndCapture,
+        };
+
         /// <summary>Setup 단계를 끝내고 Battle 단계로 넘어가 선공 팀의 첫 턴을 시작한다.</summary>
         public static void StartBattle(GameState state)
         {
@@ -22,17 +44,25 @@ namespace MiniChess.Core.Turns
             BeginTurn(state);
         }
 
-        /// <summary>현재 팀의 턴을 끝내고 상대 팀의 턴을 시작한다.</summary>
+        /// <summary>현재 팀의 턴을 끝내고(종료 단계 처리) 상대 팀의 턴을 시작한다.</summary>
         internal static void EndTurn(GameState state)
         {
             if (state.Phase != GamePhase.Battle)
                 throw new InvalidOperationException($"턴 종료는 Battle 단계에서만 가능. 현재: {state.Phase}");
 
-            // TODO: 턴 종료 처리(회복 → DoT → 장판 → 지속시간 감소 → 점령 판정)는 해당 시스템 구현 시 추가.
+            Team endingTeam = state.CurrentTeam;
 
-            state.Events.Record(new TurnEndedEvent(state.CurrentTeam, state.TurnNumber));
+            foreach (TurnStep step in EndSteps)
+            {
+                // TODO: EndCapture 의 점령 판정은 점령 시스템 구현 시 추가.
+                RunHooks(state, step, endingTeam);
+                if (state.IsGameOver)
+                    return;
+            }
 
-            state.CurrentTeam = GetOpponent(state.CurrentTeam);
+            state.Events.Record(new TurnEndedEvent(endingTeam, state.TurnNumber));
+
+            state.CurrentTeam = GetOpponent(endingTeam);
             state.TurnNumber++;
 
             BeginTurn(state);
@@ -45,7 +75,7 @@ namespace MiniChess.Core.Turns
 
         /// <summary>
         /// 현재 팀의 턴 시작 처리.
-        /// 첫 턴은 StartAp 만 적용하고, 두 번째 턴부터 AP 를 회복한다.
+        /// AP 회복(첫 턴은 StartAp 만 적용) → 유닛 턴 상태 초기화 → 시작 단계 훅.
         /// </summary>
         private static void BeginTurn(GameState state)
         {
@@ -60,6 +90,24 @@ namespace MiniChess.Core.Turns
 
             foreach (Unit unit in player.Units)
                 unit.ResetTurnState();
+
+            foreach (TurnStep step in StartSteps)
+            {
+                RunHooks(state, step, state.CurrentTeam);
+                if (state.IsGameOver)
+                    return;
+            }
+        }
+
+        private static void RunHooks(GameState state, TurnStep step, Team activeTeam)
+        {
+            var context = new TurnContext(state, step, activeTeam);
+
+            StatusSystem.RunStep(context);
+            if (state.IsGameOver)
+                return;
+
+            CellEffectSystem.RunStep(context);
         }
 
         private static void RecoverAp(ApPool ap, ApRuleData rule)
