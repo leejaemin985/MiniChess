@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using MiniChess.Core.Common;
+using MiniChess.Core.Data;
 
 namespace MiniChess.Core.State
 {
@@ -22,7 +23,36 @@ namespace MiniChess.Core.State
         public IEnumerable<Unit> AliveUnits => _units.Where(unit => unit.IsAlive);
 
         /// <summary>유닛이 1개 이상 있고, 그중 살아 있는 유닛이 하나도 없으면 전멸.</summary>
-        public bool IsEliminated => _units.Count > 0 && !_units.Any(unit => unit.IsAlive);
+        /// <summary>
+        /// 전멸했는지. 소환물을 셀지는 경기 규칙의 정책을 따른다.
+        /// 정책이 Undecided 인데 소환물만 살아 남은 경우 판정할 수 없으므로 GameConfigException.
+        /// </summary>
+        public bool IsEliminated(SummonEliminationPolicy policy)
+        {
+            if (_units.Count == 0)
+                return false;
+
+            bool anyRegularAlive = _units.Any(unit => unit.IsAlive && !unit.IsSummon);
+            bool anySummonAlive = _units.Any(unit => unit.IsAlive && unit.IsSummon);
+
+            if (anyRegularAlive)
+                return false;
+            if (!anySummonAlive)
+                return true;
+
+            switch (policy)
+            {
+                case SummonEliminationPolicy.ExcludeSummons:
+                    return true;
+                case SummonEliminationPolicy.IncludeSummons:
+                    return false;
+                default:
+                    throw new GameConfigException(new[]
+                    {
+                        $"{Team}: 소환물만 남았으나 MatchRuleData.SummonElimination 정책이 정해지지 않음",
+                    });
+            }
+        }
 
         public PlayerState(Team team, ApPool ap)
         {

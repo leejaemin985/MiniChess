@@ -20,6 +20,9 @@ namespace MiniChess.Core.State
         /// <summary>자기 소유자의 이번 턴 행동 기록(전투 행동 사용, 이동 잠금 등).</summary>
         public UnitTurnState TurnState { get; } = new UnitTurnState();
 
+        /// <summary>소환물(분신 등)인지. 소환 시스템이 생기기 전까지는 항상 false.</summary>
+        public bool IsSummon { get; internal set; }
+
         public bool IsAlive => Stats.IsAlive;
         public bool IsPlaced => Position.HasValue;
 

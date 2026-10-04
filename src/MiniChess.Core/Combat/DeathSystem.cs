@@ -1,4 +1,5 @@
 using MiniChess.Core.Common;
+using MiniChess.Core.Data;
 using MiniChess.Core.Events;
 using MiniChess.Core.State;
 using MiniChess.Core.Statuses;
@@ -41,8 +42,9 @@ namespace MiniChess.Core.Combat
             if (state.Phase != GamePhase.Battle)
                 return;
 
-            bool player1Eliminated = state.GetPlayer(Team.Player1).IsEliminated;
-            bool player2Eliminated = state.GetPlayer(Team.Player2).IsEliminated;
+            SummonEliminationPolicy policy = state.Rules.Match.SummonElimination;
+            bool player1Eliminated = state.GetPlayer(Team.Player1).IsEliminated(policy);
+            bool player2Eliminated = state.GetPlayer(Team.Player2).IsEliminated(policy);
 
             if (!player1Eliminated && !player2Eliminated)
                 return;
