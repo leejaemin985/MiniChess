@@ -51,6 +51,33 @@ namespace MiniChess.Core.Tests
         }
 
         [Fact]
+        public void QuickBattle_WithPerTeamLineups_SpawnsEachTeamsOwnCharacters()
+        {
+            GameState state = QuickBattleFactory.Create(
+                PrototypeTestPreset.CreateRules(),
+                PrototypeTestPreset.CreateTestMap(),
+                PrototypeTestPreset.CreateCharacters(),
+                new[] { CharacterRoster.Chemist, CharacterRoster.Flame },
+                new[] { CharacterRoster.Warrior, CharacterRoster.Warrior, CharacterRoster.ChainGuard });
+
+            Assert.Equal(new[] { "CHEMIST", "FLAME" }, state.GetPlayer(Team.Player1).Units.Select(u => u.Stats.Base.Id));
+            Assert.Equal(new[] { "WARRIOR", "WARRIOR", "CHAIN_GUARD" }, state.GetPlayer(Team.Player2).Units.Select(u => u.Stats.Base.Id));
+        }
+
+        [Fact]
+        public void QuickBattle_PerTeamLineups_ReportIssuesFromBothTeams()
+        {
+            var ex = Assert.Throws<GameConfigException>(() => QuickBattleFactory.Create(
+                PrototypeTestPreset.CreateRules(),
+                PrototypeTestPreset.CreateTestMap(),
+                PrototypeTestPreset.CreateCharacters(),
+                new[] { "A" },
+                new[] { "B" }));
+
+            Assert.Equal(new[] { "캐릭터 Id 'A' 없음", "캐릭터 Id 'B' 없음" }, ex.Issues);
+        }
+
+        [Fact]
         public void CreateDefault_StartsFourVersusFourBattle()
         {
             GameState state = QuickBattleFactory.CreateDefault();

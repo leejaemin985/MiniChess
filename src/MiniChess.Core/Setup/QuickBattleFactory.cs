@@ -27,12 +27,29 @@ namespace MiniChess.Core.Setup
             IReadOnlyList<string> lineup,
             SkillCatalog skills = null)
         {
-            List<UnitBaseStats> lineupStats = ResolveLineup(characters, lineup);
+            return Create(rules, map, characters, lineup, lineup, skills);
+        }
+
+        /// <summary>팀별로 다른 구성으로 생성한다.</summary>
+        /// <exception cref="GameConfigException">구성에 쓰인 캐릭터의 필수 수치가 비어 있거나 Id 가 없음(양 팀 문제를 모아 보고).</exception>
+        public static GameState Create(
+            GameRuleData rules,
+            MapData map,
+            IReadOnlyList<CharacterDefinition> characters,
+            IReadOnlyList<string> player1Lineup,
+            IReadOnlyList<string> player2Lineup,
+            SkillCatalog skills = null)
+        {
+            var issues = new List<string>();
+            List<UnitBaseStats> player1Stats = ResolveLineup(characters, player1Lineup, issues);
+            List<UnitBaseStats> player2Stats = ResolveLineup(characters, player2Lineup, issues);
+            if (issues.Count > 0)
+                throw new GameConfigException(issues.Distinct().ToList());
 
             var state = new GameState(rules, map, skills);
 
-            SpawnTeam(state, Team.Player1, lineupStats);
-            SpawnTeam(state, Team.Player2, lineupStats);
+            SpawnTeam(state, Team.Player1, player1Stats);
+            SpawnTeam(state, Team.Player2, player2Stats);
 
             TurnSystem.StartBattle(state);
             return state;
@@ -49,10 +66,10 @@ namespace MiniChess.Core.Setup
                 PrototypeTestPreset.CreateSkills());
         }
 
-        /// <summary>구성의 모든 캐릭터를 확인하고, 문제를 한 번에 모아 보고한다.</summary>
-        private static List<UnitBaseStats> ResolveLineup(IReadOnlyList<CharacterDefinition> characters, IReadOnlyList<string> lineup)
+        /// <summary>구성의 모든 캐릭터를 확인한다. 문제는 issues 에 모으고 해결된 능력치만 반환한다.</summary>
+        private static List<UnitBaseStats> ResolveLineup(
+            IReadOnlyList<CharacterDefinition> characters, IReadOnlyList<string> lineup, List<string> issues)
         {
-            var issues = new List<string>();
             var resolved = new List<UnitBaseStats>();
 
             foreach (string id in lineup)
@@ -73,9 +90,6 @@ namespace MiniChess.Core.Setup
 
                 resolved.Add(definition.ToBaseStats());
             }
-
-            if (issues.Count > 0)
-                throw new GameConfigException(issues.Distinct().ToList());
 
             return resolved;
         }
