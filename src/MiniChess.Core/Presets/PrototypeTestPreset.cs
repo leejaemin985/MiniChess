@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using MiniChess.Core.Characters;
 using MiniChess.Core.Common;
 using MiniChess.Core.Data;
 using MiniChess.Core.Skills;
@@ -18,12 +19,12 @@ namespace MiniChess.Core.Presets
         {
             return new GameRuleData
             {
-                // [프로토타입] 명세 v0.1 3.2
+                // [가정] 명세 v0.1 3.2 의 [프로토타입] 값(6/4/4)에서 플레이 테스트를 위해 12/8/8 로 변경. 나머지는 [프로토타입] 값
                 Ap = new ApRuleData
                 {
-                    MaxAp = 6,
-                    StartAp = 4,
-                    TurnRecoveryAp = 4,
+                    MaxAp = 12,
+                    StartAp = 8,
+                    TurnRecoveryAp = 8,
                     CarryOver = true,
                 },
                 ActionCost = new ActionCostData
@@ -96,13 +97,59 @@ namespace MiniChess.Core.Presets
                 .ToList();
         }
 
-        /// <summary>
-        /// 플레이 테스트용 스킬 정의. 캐릭터 스킬은 구현되는 대로 여기에 추가하고,
-        /// CreateCharacters 에서 해당 캐릭터의 SkillSlots 에 연결한다.
-        /// </summary>
+        /// <summary>구현된 캐릭터 스킬을 임시 수치로 만든 스킬 목록.</summary>
         public static SkillCatalog CreateSkills()
         {
-            return new SkillCatalog();
+            return CharacterSkills.CreateCatalog(CreateSkillTuning());
+        }
+
+        /// <summary>스킬 임시 수치. [가정] 모두 명세상 TBD. ASSUMPTIONS.md 참고.</summary>
+        public static SkillTuning CreateSkillTuning()
+        {
+            var t = new SkillTuning();
+
+            t.Root.BlocksExternalMoves = false;
+
+            t.WarriorSmash.ApCost = 3;
+            t.WarriorSmash.Damage = 5;
+
+            t.ArcherAimedShot.ApCost = 3;
+            t.ArcherAimedShot.Range = 5;
+            t.ArcherAimedShot.Damage = 3;
+
+            t.FlameCompressedShell.ApCost = 3;
+            t.FlameCompressedShell.Range = 3;
+            t.FlameCompressedShell.ImpactDamage = 1;
+            t.FlameCompressedShell.BurnDamage = 1;
+            t.FlameCompressedShell.BurnTriggers = 2;
+
+            t.ChemistRootTrap.ApCost = 3;
+            t.ChemistRootTrap.Range = 2;
+            t.ChemistRootTrap.Damage = 1;
+            t.ChemistRootTrap.RootTurns = 1;
+            t.ChemistRootTrap.MaxActive = 2;
+            t.ChemistRootTrap.Lifetime = 3;
+            t.ChemistRootTrap.SingleUse = true;
+
+            t.ChemistPoisonGas.ApCost = 3;
+            t.ChemistPoisonGas.Range = 3;
+            t.ChemistPoisonGas.Width = 2;
+            t.ChemistPoisonGas.Height = 2;
+            t.ChemistPoisonGas.Damage = 1;
+            t.ChemistPoisonGas.Lifetime = 2;
+            t.ChemistPoisonGas.MaxActive = 1;
+
+            t.ChainGuardChainBind.ApCost = 3;
+            t.ChainGuardChainBind.Range = 2;
+            t.ChainGuardChainBind.Damage = 0;
+
+            t.GardenerHealingMeadow.ApCost = 4;
+            t.GardenerHealingMeadow.Range = 2;
+            t.GardenerHealingMeadow.Radius = 1;
+            t.GardenerHealingMeadow.Heal = 1;
+            t.GardenerHealingMeadow.Lifetime = 2;
+
+            return t;
         }
 
         /// <summary>QuickBattle 에서 양 팀이 쓰는 4인 구성. [가정] 기존 샘플(전사/궁수/수호/암살)과 비슷한 역할 분포.</summary>

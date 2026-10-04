@@ -39,11 +39,17 @@ namespace MiniChess.Core.Effects
         {
             if (effect == null) throw new ArgumentNullException(nameof(effect));
 
+            return CanPlace(state, position, effect.Layer);
+        }
+
+        /// <summary>해당 레이어의 효과를 이 칸에 설치할 수 있는지(지정 가능 칸 판정용).</summary>
+        public static CellEffectPlaceFailReason CanPlace(GameState state, Position position, CellEffectLayer layer)
+        {
             if (!state.Board.IsInBounds(position)) return CellEffectPlaceFailReason.OutOfBounds;
 
             BoardCell cell = state.Board.GetCell(position);
             if (cell.IsWall) return CellEffectPlaceFailReason.Wall;
-            if (cell.IsCaptureTile && !IsAllowedOnCaptureTile(effect.Layer)) return CellEffectPlaceFailReason.CaptureTileRestricted;
+            if (cell.IsCaptureTile && !IsAllowedOnCaptureTile(layer)) return CellEffectPlaceFailReason.CaptureTileRestricted;
 
             return CellEffectPlaceFailReason.None;
         }
