@@ -10,15 +10,15 @@ namespace MiniChess.Core.Data
     /// </summary>
     public static class CharacterRoster
     {
-        public const string Scythe = "SCYTHE";
-        public const string Mortar = "MORTAR";
-        public const string Gardener = "GARDENER";
-        public const string Warrior = "WARRIOR";
-        public const string Archer = "ARCHER";
-        public const string Chemist = "CHEMIST";
-        public const string Flame = "FLAME";
-        public const string Seamstress = "SEAMSTRESS";
-        public const string ChainGuard = "CHAIN_GUARD";
+        public const string Scythe = "SCYTHE";           // 낫 / 그림자 분신 전투원
+        public const string Mortar = "MORTAR";           // 마법공학 박격포 여학생
+        public const string Gardener = "GARDENER";       // 원예부 선배 수호자
+        public const string Warrior = "WARRIOR";         // 대검 전사
+        public const string Archer = "ARCHER";           // 궁수 / 볼라 사냥꾼
+        public const string Chemist = "CHEMIST";         // 화학공학 덫 전문가
+        public const string Flame = "FLAME";             // 소형 중화기 화염 딜러
+        public const string Seamstress = "SEAMSTRESS";   // 공간 재봉사
+        public const string ChainGuard = "CHAIN_GUARD";  // 사슬 수호기사
 
         /// <summary>
         /// 수치가 비어 있는 9개 캐릭터 정의를 새로 만든다.
