@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+
 namespace MiniChess.Core.Data
 {
     /// <summary>
@@ -15,5 +18,8 @@ namespace MiniChess.Core.Data
 
         /// <summary>기본 공격 사거리(칸).</summary>
         public int AttackRange { get; set; }
+
+        /// <summary>보유 스킬 Id(슬롯 순).</summary>
+        public IReadOnlyList<string> SkillIds { get; set; } = Array.Empty<string>();
     }
 }

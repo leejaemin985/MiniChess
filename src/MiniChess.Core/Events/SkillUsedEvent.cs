@@ -1,0 +1,24 @@
+using System.Collections.Generic;
+using MiniChess.Core.Common;
+using MiniChess.Core.Skills;
+using MiniChess.Core.State;
+
+namespace MiniChess.Core.Events
+{
+    /// <summary>스킬 시전 시작. 이 이벤트 뒤에 스킬 효과로 인한 이벤트들이 이어진다.</summary>
+    public class SkillUsedEvent : GameEvent
+    {
+        public Unit Caster { get; }
+        public SkillDefinition Skill { get; }
+        public Position Target { get; }
+        public IReadOnlyList<Position> AffectedCells { get; }
+
+        public SkillUsedEvent(Unit caster, SkillDefinition skill, Position target, IReadOnlyList<Position> affectedCells)
+        {
+            Caster = caster;
+            Skill = skill;
+            Target = target;
+            AffectedCells = affectedCells;
+        }
+    }
+}

@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace MiniChess.Core.Data
 {
     /// <summary>유닛 기본 능력치의 읽기 전용 뷰. 게임 로직은 이 인터페이스로만 참조한다.</summary>
@@ -12,5 +14,8 @@ namespace MiniChess.Core.Data
 
         /// <summary>기본 공격 사거리(칸).</summary>
         int AttackRange { get; }
+
+        /// <summary>보유 스킬 Id(슬롯 순). 미정 슬롯은 포함하지 않는다.</summary>
+        IReadOnlyList<string> SkillIds { get; }
     }
 }

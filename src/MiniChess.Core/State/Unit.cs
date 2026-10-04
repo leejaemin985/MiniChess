@@ -33,6 +33,11 @@ namespace MiniChess.Core.State
             Stats = new UnitStats(baseStats);
         }
 
+        public bool HasSkill(string skillId)
+        {
+            return skillId != null && Stats.Base.SkillIds.Contains(skillId);
+        }
+
         /// <summary>걸려 있는 상태효과(부여 순). 변경은 StatusSystem 을 통해서만 한다.</summary>
         public IReadOnlyList<StatusEffect> Statuses => _statuses;
 

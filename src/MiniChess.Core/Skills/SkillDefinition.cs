@@ -1,0 +1,74 @@
+using System;
+using System.Collections.Generic;
+
+namespace MiniChess.Core.Skills
+{
+    /// <summary>
+    /// 스킬 정의(데이터). 부품의 조합으로 구성한다.
+    ///   비용(ApCost) + 행동 종류(ActionKind) + 지정 규칙(Targeting) + 범위(Area) + 효과 목록(Effects) + 사용 조건(Conditions)
+    /// 수치가 TBD 인 항목은 null 로 두며, 설정이 비어 있는 스킬은 사용할 수 없다(SkillFailReason.ConfigMissing).
+    /// </summary>
+    public class SkillDefinition
+    {
+        public string Id { get; }
+
+        /// <summary>임시 기능명.</summary>
+        public string Name { get; }
+
+        /// <summary>AP 비용. [TBD 가능]</summary>
+        public int? ApCost { get; }
+
+        public SkillActionKind ActionKind { get; }
+        public SkillTargeting Targeting { get; }
+        public SkillArea Area { get; }
+        public IReadOnlyList<SkillEffect> Effects { get; }
+        public IReadOnlyList<SkillCondition> Conditions { get; }
+
+        /// <summary>사용 후 시전자의 이번 턴 행동을 모두 끝낸다(예: 분신 소환 후 본체 행동 불가).</summary>
+        public bool EndsCasterActions { get; }
+
+        public SkillDefinition(
+            string id,
+            string name,
+            int? apCost,
+            SkillActionKind actionKind,
+            SkillTargeting targeting,
+            SkillArea area,
+            IReadOnlyList<SkillEffect> effects,
+            IReadOnlyList<SkillCondition> conditions = null,
+            bool endsCasterActions = false)
+        {
+            if (string.IsNullOrEmpty(id)) throw new ArgumentException("스킬 Id 가 비어 있음", nameof(id));
+
+            Id = id;
+            Name = name;
+            ApCost = apCost;
+            ActionKind = actionKind;
+            Targeting = targeting ?? throw new ArgumentNullException(nameof(targeting));
+            Area = area ?? throw new ArgumentNullException(nameof(area));
+            Effects = effects ?? throw new ArgumentNullException(nameof(effects));
+            Conditions = conditions ?? Array.Empty<SkillCondition>();
+            EndsCasterActions = endsCasterActions;
+        }
+
+        /// <summary>비어 있는 필수 설정 목록. 비어 있으면 사용 가능한 정의다.</summary>
+        public List<string> GetConfigIssues()
+        {
+            var issues = new List<string>();
+
+            if (ApCost == null)
+                issues.Add($"{Id}.{nameof(ApCost)} 미설정");
+
+            Targeting.CollectConfigIssues($"{Id}.{nameof(Targeting)}", issues);
+            Area.CollectConfigIssues($"{Id}.{nameof(Area)}", issues);
+
+            for (int i = 0; i < Effects.Count; i++)
+                Effects[i].CollectConfigIssues($"{Id}.{nameof(Effects)}[{i}]", issues);
+
+            for (int i = 0; i < Conditions.Count; i++)
+                Conditions[i].CollectConfigIssues($"{Id}.{nameof(Conditions)}[{i}]", issues);
+
+            return issues;
+        }
+    }
+}

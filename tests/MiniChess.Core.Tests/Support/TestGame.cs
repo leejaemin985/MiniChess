@@ -1,5 +1,6 @@
 using MiniChess.Core.Common;
 using MiniChess.Core.Data;
+using MiniChess.Core.Skills;
 using MiniChess.Core.State;
 using MiniChess.Core.Turns;
 
@@ -14,6 +15,7 @@ namespace MiniChess.Core.Tests.Support
         private readonly List<(Team Team, Position Position, UnitBaseStats Stats)> _placements = new();
         private string[] _rows = EmptyRows(7, 7);
         private GameRuleData _rules = CreateRules();
+        private SkillCatalog _skills = new();
 
         public static GameRuleData CreateRules()
         {
@@ -26,9 +28,9 @@ namespace MiniChess.Core.Tests.Support
             };
         }
 
-        public static UnitBaseStats Stats(string id = "test", int hp = 10, int attack = 3, int range = 1)
+        public static UnitBaseStats Stats(string id = "test", int hp = 10, int attack = 3, int range = 1, params string[] skills)
         {
-            return new UnitBaseStats { Id = id, Name = id, MaxHp = hp, Attack = attack, AttackRange = range };
+            return new UnitBaseStats { Id = id, Name = id, MaxHp = hp, Attack = attack, AttackRange = range, SkillIds = skills };
         }
 
         public static string[] EmptyRows(int width, int height)
@@ -40,6 +42,13 @@ namespace MiniChess.Core.Tests.Support
         public TestGame WithMap(params string[] rows)
         {
             _rows = rows;
+            return this;
+        }
+
+        public TestGame WithSkills(params SkillDefinition[] skills)
+        {
+            foreach (SkillDefinition skill in skills)
+                _skills.Add(skill);
             return this;
         }
 
@@ -58,7 +67,7 @@ namespace MiniChess.Core.Tests.Support
         /// <summary>경기를 만들고 Battle 을 시작한다. 반환된 유닛 배열은 Place 호출 순서와 같다.</summary>
         public (GameState State, Unit[] Units) Start()
         {
-            var state = new GameState(_rules, new MapData { Name = "Test", Rows = _rows });
+            var state = new GameState(_rules, new MapData { Name = "Test", Rows = _rows }, _skills);
             var units = new Unit[_placements.Count];
 
             for (int i = 0; i < _placements.Count; i++)

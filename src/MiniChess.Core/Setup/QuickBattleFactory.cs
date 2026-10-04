@@ -4,6 +4,7 @@ using System.Linq;
 using MiniChess.Core.Common;
 using MiniChess.Core.Data;
 using MiniChess.Core.Presets;
+using MiniChess.Core.Skills;
 using MiniChess.Core.State;
 using MiniChess.Core.Turns;
 
@@ -17,16 +18,18 @@ namespace MiniChess.Core.Setup
     {
         /// <param name="characters">사용 가능한 캐릭터 정의.</param>
         /// <param name="lineup">양 팀이 공통으로 쓰는 캐릭터 Id 구성.</param>
+        /// <param name="skills">경기에서 쓰는 스킬 정의. null 이면 스킬 없음.</param>
         /// <exception cref="GameConfigException">구성에 쓰인 캐릭터의 필수 수치가 비어 있거나 Id 가 없음.</exception>
         public static GameState Create(
             GameRuleData rules,
             MapData map,
             IReadOnlyList<CharacterDefinition> characters,
-            IReadOnlyList<string> lineup)
+            IReadOnlyList<string> lineup,
+            SkillCatalog skills = null)
         {
             List<UnitBaseStats> lineupStats = ResolveLineup(characters, lineup);
 
-            var state = new GameState(rules, map);
+            var state = new GameState(rules, map, skills);
 
             SpawnTeam(state, Team.Player1, lineupStats);
             SpawnTeam(state, Team.Player2, lineupStats);
@@ -42,7 +45,8 @@ namespace MiniChess.Core.Setup
                 PrototypeTestPreset.CreateRules(),
                 PrototypeTestPreset.CreateTestMap(),
                 PrototypeTestPreset.CreateCharacters(),
-                PrototypeTestPreset.CreateStartingLineup());
+                PrototypeTestPreset.CreateStartingLineup(),
+                PrototypeTestPreset.CreateSkills());
         }
 
         /// <summary>구성의 모든 캐릭터를 확인하고, 문제를 한 번에 모아 보고한다.</summary>

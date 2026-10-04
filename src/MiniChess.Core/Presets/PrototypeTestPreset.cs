@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using MiniChess.Core.Common;
 using MiniChess.Core.Data;
+using MiniChess.Core.Skills;
 
 namespace MiniChess.Core.Presets
 {
@@ -93,6 +94,15 @@ namespace MiniChess.Core.Presets
                     return definition;
                 })
                 .ToList();
+        }
+
+        /// <summary>
+        /// 플레이 테스트용 스킬 정의. 캐릭터 스킬은 구현되는 대로 여기에 추가하고,
+        /// CreateCharacters 에서 해당 캐릭터의 SkillSlots 에 연결한다.
+        /// </summary>
+        public static SkillCatalog CreateSkills()
+        {
+            return new SkillCatalog();
         }
 
         /// <summary>QuickBattle 에서 양 팀이 쓰는 4인 구성. [가정] 기존 샘플(전사/궁수/수호/암살)과 비슷한 역할 분포.</summary>

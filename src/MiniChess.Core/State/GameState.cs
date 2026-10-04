@@ -4,6 +4,7 @@ using MiniChess.Core.Combat;
 using MiniChess.Core.Common;
 using MiniChess.Core.Data;
 using MiniChess.Core.Events;
+using MiniChess.Core.Skills;
 
 namespace MiniChess.Core.State
 {
@@ -16,6 +17,9 @@ namespace MiniChess.Core.State
 
         public GameRuleData Rules { get; }
         public Board Board { get; }
+
+        /// <summary>이 경기에서 쓰는 스킬 정의.</summary>
+        public SkillCatalog Skills { get; }
 
         /// <summary>경기 중 발생한 상태 변화 기록.</summary>
         public GameEventLog Events { get; } = new GameEventLog();
@@ -40,10 +44,11 @@ namespace MiniChess.Core.State
         public bool IsGameOver => Phase == GamePhase.Ended;
         public PlayerState CurrentPlayer => GetPlayer(CurrentTeam);
 
-        public GameState(GameRuleData rules, MapData map)
+        public GameState(GameRuleData rules, MapData map, SkillCatalog skills = null)
         {
             Rules = rules ?? throw new ArgumentNullException(nameof(rules));
             Board = new Board(map);
+            Skills = skills ?? SkillCatalog.Empty;
 
             _players = new Dictionary<Team, PlayerState>
             {
