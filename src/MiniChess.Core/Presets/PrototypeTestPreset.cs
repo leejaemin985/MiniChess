@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using MiniChess.Core.Capture;
 using MiniChess.Core.Characters;
+using MiniChess.Core.Characters.Pieces;
 using MiniChess.Core.Common;
 using MiniChess.Core.Data;
 using MiniChess.Core.Skills;
@@ -81,18 +82,18 @@ namespace MiniChess.Core.Presets
         {
             var temporaryStats = new Dictionary<string, (int Hp, int Attack, int Range)>
             {
-                { CharacterRoster.Scythe,     (10, 3, 1) },
-                { CharacterRoster.Mortar,     (9,  2, 3) },
-                { CharacterRoster.Gardener,   (16, 2, 1) },
-                { CharacterRoster.Warrior,    (12, 3, 1) },
-                { CharacterRoster.Archer,     (8,  2, 3) },
-                { CharacterRoster.Chemist,    (9,  2, 2) },
-                { CharacterRoster.Flame,      (9,  3, 2) },
-                { CharacterRoster.Seamstress, (9,  2, 2) },
-                { CharacterRoster.ChainGuard, (15, 2, 1) },
+                { ScythePiece.PieceId,     (10, 3, 1) },
+                { MortarPiece.PieceId,     (9,  2, 3) },
+                { GardenerPiece.PieceId,   (16, 2, 1) },
+                { WarriorPiece.PieceId,    (12, 3, 1) },
+                { ArcherPiece.PieceId,     (8,  2, 3) },
+                { ChemistPiece.PieceId,    (9,  2, 2) },
+                { FlamePiece.PieceId,      (9,  3, 2) },
+                { SeamstressPiece.PieceId, (9,  2, 2) },
+                { ChainGuardPiece.PieceId, (15, 2, 1) },
             };
 
-            return CharacterRoster.Create()
+            return PieceModules.CreateDefinitions()
                 .Select(definition =>
                 {
                     (int hp, int attack, int range) = temporaryStats[definition.Id];
@@ -107,7 +108,7 @@ namespace MiniChess.Core.Presets
         /// <summary>구현된 캐릭터 스킬을 임시 수치로 만든 스킬 목록.</summary>
         public static SkillCatalog CreateSkills()
         {
-            return CharacterSkills.CreateCatalog(CreateSkillTuning());
+            return PieceModules.CreateSkillCatalog(CreateSkillTuning());
         }
 
         /// <summary>스킬 임시 수치. [가정] 모두 명세상 TBD. ASSUMPTIONS.md 참고.</summary>
@@ -117,44 +118,44 @@ namespace MiniChess.Core.Presets
 
             t.Root.BlocksExternalMoves = false;
 
-            t.WarriorSmash.ApCost = 3;
-            t.WarriorSmash.Damage = 5;
+            t.Warrior.Smash.ApCost = 3;
+            t.Warrior.Smash.Damage = 5;
 
-            t.ArcherAimedShot.ApCost = 3;
-            t.ArcherAimedShot.Range = 5;
-            t.ArcherAimedShot.Damage = 3;
+            t.Archer.AimedShot.ApCost = 3;
+            t.Archer.AimedShot.Range = 5;
+            t.Archer.AimedShot.Damage = 3;
 
-            t.FlameCompressedShell.ApCost = 3;
-            t.FlameCompressedShell.Range = 3;
-            t.FlameCompressedShell.ImpactDamage = 1;
-            t.FlameCompressedShell.BurnDamage = 1;
-            t.FlameCompressedShell.BurnTriggers = 2;
+            t.Flame.CompressedShell.ApCost = 3;
+            t.Flame.CompressedShell.Range = 3;
+            t.Flame.CompressedShell.ImpactDamage = 1;
+            t.Flame.CompressedShell.BurnDamage = 1;
+            t.Flame.CompressedShell.BurnTriggers = 2;
 
-            t.ChemistRootTrap.ApCost = 3;
-            t.ChemistRootTrap.Range = 2;
-            t.ChemistRootTrap.Damage = 1;
-            t.ChemistRootTrap.RootTurns = 1;
-            t.ChemistRootTrap.MaxActive = 2;
-            t.ChemistRootTrap.Lifetime = 3;
-            t.ChemistRootTrap.SingleUse = true;
+            t.Chemist.RootTrap.ApCost = 3;
+            t.Chemist.RootTrap.Range = 2;
+            t.Chemist.RootTrap.Damage = 1;
+            t.Chemist.RootTrap.RootTurns = 1;
+            t.Chemist.RootTrap.MaxActive = 2;
+            t.Chemist.RootTrap.Lifetime = 3;
+            t.Chemist.RootTrap.SingleUse = true;
 
-            t.ChemistPoisonGas.ApCost = 3;
-            t.ChemistPoisonGas.Range = 3;
-            t.ChemistPoisonGas.Width = 2;
-            t.ChemistPoisonGas.Height = 2;
-            t.ChemistPoisonGas.Damage = 1;
-            t.ChemistPoisonGas.Lifetime = 2;
-            t.ChemistPoisonGas.MaxActive = 1;
+            t.Chemist.PoisonGas.ApCost = 3;
+            t.Chemist.PoisonGas.Range = 3;
+            t.Chemist.PoisonGas.Width = 2;
+            t.Chemist.PoisonGas.Height = 2;
+            t.Chemist.PoisonGas.Damage = 1;
+            t.Chemist.PoisonGas.Lifetime = 2;
+            t.Chemist.PoisonGas.MaxActive = 1;
 
-            t.ChainGuardChainBind.ApCost = 3;
-            t.ChainGuardChainBind.Range = 2;
-            t.ChainGuardChainBind.Damage = 0;
+            t.ChainGuard.ChainBind.ApCost = 3;
+            t.ChainGuard.ChainBind.Range = 2;
+            t.ChainGuard.ChainBind.Damage = 0;
 
-            t.GardenerHealingMeadow.ApCost = 4;
-            t.GardenerHealingMeadow.Range = 2;
-            t.GardenerHealingMeadow.Radius = 1;
-            t.GardenerHealingMeadow.Heal = 1;
-            t.GardenerHealingMeadow.Lifetime = 2;
+            t.Gardener.HealingMeadow.ApCost = 4;
+            t.Gardener.HealingMeadow.Range = 2;
+            t.Gardener.HealingMeadow.Radius = 1;
+            t.Gardener.HealingMeadow.Heal = 1;
+            t.Gardener.HealingMeadow.Lifetime = 2;
 
             return t;
         }
@@ -164,10 +165,10 @@ namespace MiniChess.Core.Presets
         {
             return new[]
             {
-                CharacterRoster.Warrior,
-                CharacterRoster.Archer,
-                CharacterRoster.Gardener,
-                CharacterRoster.Scythe,
+                WarriorPiece.PieceId,
+                ArcherPiece.PieceId,
+                GardenerPiece.PieceId,
+                ScythePiece.PieceId,
             };
         }
     }

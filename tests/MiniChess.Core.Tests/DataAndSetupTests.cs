@@ -1,4 +1,6 @@
 using MiniChess.Core.Actions;
+using MiniChess.Core.Characters;
+using MiniChess.Core.Characters.Pieces;
 using MiniChess.Core.Common;
 using MiniChess.Core.Data;
 using MiniChess.Core.Presets;
@@ -16,7 +18,7 @@ namespace MiniChess.Core.Tests
         [Fact]
         public void Roster_HasNineCharacters_WithSpecRoles_AndNoStats()
         {
-            List<CharacterDefinition> roster = CharacterRoster.Create();
+            List<CharacterDefinition> roster = PieceModules.CreateDefinitions();
 
             Assert.Equal(9, roster.Select(c => c.Id).Distinct().Count());
             Assert.Equal(4, roster.Count(c => c.Role == CharacterRole.Combat));
@@ -31,8 +33,8 @@ namespace MiniChess.Core.Tests
             var ex = Assert.Throws<GameConfigException>(() => QuickBattleFactory.Create(
                 PrototypeTestPreset.CreateRules(),
                 PrototypeTestPreset.CreateTestMap(),
-                CharacterRoster.Create(),
-                new[] { CharacterRoster.Warrior, CharacterRoster.Archer }));
+                PieceModules.CreateDefinitions(),
+                new[] { WarriorPiece.PieceId, ArcherPiece.PieceId }));
 
             Assert.Contains("WARRIOR.MaxHp 미설정", ex.Issues);
             Assert.Contains("ARCHER.AttackRange 미설정", ex.Issues);
@@ -57,8 +59,8 @@ namespace MiniChess.Core.Tests
                 PrototypeTestPreset.CreateRules(),
                 PrototypeTestPreset.CreateTestMap(),
                 PrototypeTestPreset.CreateCharacters(),
-                new[] { CharacterRoster.Chemist, CharacterRoster.Flame },
-                new[] { CharacterRoster.Warrior, CharacterRoster.Warrior, CharacterRoster.ChainGuard });
+                new[] { ChemistPiece.PieceId, FlamePiece.PieceId },
+                new[] { WarriorPiece.PieceId, WarriorPiece.PieceId, ChainGuardPiece.PieceId });
 
             Assert.Equal(new[] { "CHEMIST", "FLAME" }, state.GetPlayer(Team.Player1).Units.Select(u => u.Stats.Base.Id));
             Assert.Equal(new[] { "WARRIOR", "WARRIOR", "CHAIN_GUARD" }, state.GetPlayer(Team.Player2).Units.Select(u => u.Stats.Base.Id));

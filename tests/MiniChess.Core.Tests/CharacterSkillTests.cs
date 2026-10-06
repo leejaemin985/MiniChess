@@ -1,5 +1,6 @@
 using MiniChess.Core.Actions;
 using MiniChess.Core.Characters;
+using MiniChess.Core.Characters.Pieces;
 using MiniChess.Core.Combat;
 using MiniChess.Core.Common;
 using MiniChess.Core.Data;
@@ -22,7 +23,7 @@ namespace MiniChess.Core.Tests
     public class CharacterSkillTests
     {
         private static SkillDefinition[] PresetSkills() =>
-            CharacterSkills.CreateCatalog(PrototypeTestPreset.CreateSkillTuning()).All.ToArray();
+            PieceModules.CreateSkillCatalog(PrototypeTestPreset.CreateSkillTuning()).All.ToArray();
 
         private static TestGame Game() => new TestGame().WithSkills(PresetSkills());
 
@@ -52,11 +53,11 @@ namespace MiniChess.Core.Tests
         [Fact]
         public void EmptyTuning_ReportsEveryMissingValueByName()
         {
-            SkillDefinition[] skills = CharacterSkills.CreateCatalog(new SkillTuning()).All.ToArray();
+            SkillDefinition[] skills = PieceModules.CreateSkillCatalog(new SkillTuning()).All.ToArray();
 
             Assert.All(skills, s => Assert.NotEmpty(s.GetConfigIssues()));
 
-            List<string> trap = skills.Single(s => s.Id == SkillIds.ChemistRootTrap).GetConfigIssues();
+            List<string> trap = skills.Single(s => s.Id == ChemistPiece.RootTrapId).GetConfigIssues();
             Assert.Contains("CHEMIST_ROOT_TRAP.ApCost 미설정", trap);
             Assert.Contains("CHEMIST_ROOT_TRAP.Conditions[1].SingleUse 미설정", trap);
             Assert.Contains("CHEMIST_ROOT_TRAP.Conditions[1].Root.BlocksExternalMoves 미설정", trap);
@@ -66,7 +67,7 @@ namespace MiniChess.Core.Tests
         public void RosterSkillSlots_ReferToImplementedSkills()
         {
             var ids = PresetSkills().Select(s => s.Id).ToHashSet();
-            var slotted = CharacterRoster.Create().SelectMany(c => c.SkillSlots).Where(id => id != null).ToList();
+            var slotted = PieceModules.CreateDefinitions().SelectMany(c => c.SkillSlots).Where(id => id != null).ToList();
 
             Assert.Equal(7, slotted.Count);
             Assert.All(slotted, id => Assert.Contains(id, ids));
@@ -80,14 +81,14 @@ namespace MiniChess.Core.Tests
         public void WarriorSmash_HitsAdjacentEnemyOnly()
         {
             var (state, u) = Game()
-                .Place(Team.Player1, 2, 2, With(SkillIds.WarriorSmash))
+                .Place(Team.Player1, 2, 2, With(WarriorPiece.SmashId))
                 .Place(Team.Player2, 3, 3)
                 .Place(Team.Player2, 4, 2)
                 .Start();
 
-            Assert.Equal(SkillFailReason.InvalidTarget, Check(state, u[0], SkillIds.WarriorSmash, 4, 2));
+            Assert.Equal(SkillFailReason.InvalidTarget, Check(state, u[0], WarriorPiece.SmashId, 4, 2));
 
-            Use(state, u[0], SkillIds.WarriorSmash, 3, 3);
+            Use(state, u[0], WarriorPiece.SmashId, 3, 3);
 
             Assert.Equal(5, u[1].Stats.CurrentHp);
         }
@@ -96,14 +97,14 @@ namespace MiniChess.Core.Tests
         public void ArcherAimedShot_ReachesItsRange()
         {
             var (state, u) = Game()
-                .Place(Team.Player1, 0, 0, With(SkillIds.ArcherAimedShot))
+                .Place(Team.Player1, 0, 0, With(ArcherPiece.AimedShotId))
                 .Place(Team.Player2, 5, 5)
                 .Place(Team.Player2, 6, 6)
                 .Start();
 
-            Assert.Equal(SkillFailReason.InvalidTarget, Check(state, u[0], SkillIds.ArcherAimedShot, 6, 6));
+            Assert.Equal(SkillFailReason.InvalidTarget, Check(state, u[0], ArcherPiece.AimedShotId, 6, 6));
 
-            Use(state, u[0], SkillIds.ArcherAimedShot, 5, 5);
+            Use(state, u[0], ArcherPiece.AimedShotId, 5, 5);
 
             Assert.Equal(7, u[1].Stats.CurrentHp);
         }
@@ -113,11 +114,11 @@ namespace MiniChess.Core.Tests
         public void FlameCompressedShell_ImpactThenBurnOnTargetOwnersTurnEnds()
         {
             var (state, u) = Game()
-                .Place(Team.Player1, 0, 0, With(SkillIds.FlameCompressedShell))
+                .Place(Team.Player1, 0, 0, With(FlamePiece.CompressedShellId))
                 .Place(Team.Player2, 2, 2)
                 .Start();
 
-            Use(state, u[0], SkillIds.FlameCompressedShell, 2, 2);
+            Use(state, u[0], FlamePiece.CompressedShellId, 2, 2);
             Assert.Equal(9, u[1].Stats.CurrentHp);
 
             EndTurn(state); // P1 종료: 화상 없음
@@ -136,14 +137,14 @@ namespace MiniChess.Core.Tests
         public void FlameCompressedShell_ReapplyRefreshesInsteadOfStacking()
         {
             var (state, u) = Game()
-                .Place(Team.Player1, 0, 0, With(SkillIds.FlameCompressedShell))
-                .Place(Team.Player1, 1, 0, With(SkillIds.FlameCompressedShell))
+                .Place(Team.Player1, 0, 0, With(FlamePiece.CompressedShellId))
+                .Place(Team.Player1, 1, 0, With(FlamePiece.CompressedShellId))
                 .Place(Team.Player2, 2, 2, TestGame.Stats(hp: 20))
                 .WithRules(r => r.Ap.StartAp = 6)
                 .Start();
 
-            Use(state, u[0], SkillIds.FlameCompressedShell, 2, 2);
-            Use(state, u[1], SkillIds.FlameCompressedShell, 2, 2);
+            Use(state, u[0], FlamePiece.CompressedShellId, 2, 2);
+            Use(state, u[1], FlamePiece.CompressedShellId, 2, 2);
 
             Assert.Single(u[2].Statuses);
             EndTurn(state);
@@ -155,11 +156,11 @@ namespace MiniChess.Core.Tests
         public void ChainBind_RootsTargetForItsNextTurn_ButAllowsAttack()
         {
             var (state, u) = Game()
-                .Place(Team.Player1, 0, 0, With(SkillIds.ChainGuardChainBind))
+                .Place(Team.Player1, 0, 0, With(ChainGuardPiece.ChainBindId))
                 .Place(Team.Player2, 1, 1, TestGame.Stats(hp: 20))
                 .Start();
 
-            Use(state, u[0], SkillIds.ChainGuardChainBind, 1, 1);
+            Use(state, u[0], ChainGuardPiece.ChainBindId, 1, 1);
             EndTurn(state);
 
             Assert.Equal(MoveFailReason.Rooted, new MoveAction(u[1], new Position(1, 2)).Validate(state));
@@ -178,11 +179,11 @@ namespace MiniChess.Core.Tests
         public void RootTrap_StopsEnemyMove_DamagesRoots_AndIsConsumed()
         {
             var (state, u) = Game()
-                .Place(Team.Player1, 0, 0, With(SkillIds.ChemistRootTrap))
+                .Place(Team.Player1, 0, 0, With(ChemistPiece.RootTrapId))
                 .Place(Team.Player2, 0, 4)
                 .Start();
 
-            Use(state, u[0], SkillIds.ChemistRootTrap, 0, 2);
+            Use(state, u[0], ChemistPiece.RootTrapId, 0, 2);
             EndTurn(state);
 
             MovementResult move = new MoveAction(u[1], new Position(0, 1)).Execute(state);
@@ -199,10 +200,10 @@ namespace MiniChess.Core.Tests
         public void RootTrap_TriggeredOnOwnTurn_RootsThroughNextOwnTurn()
         {
             var (state, u) = Game()
-                .Place(Team.Player1, 0, 0, With(SkillIds.ChemistRootTrap))
+                .Place(Team.Player1, 0, 0, With(ChemistPiece.RootTrapId))
                 .Place(Team.Player2, 0, 4)
                 .Start();
-            Use(state, u[0], SkillIds.ChemistRootTrap, 0, 2);
+            Use(state, u[0], ChemistPiece.RootTrapId, 0, 2);
             EndTurn(state);
             new MoveAction(u[1], new Position(0, 1)).Execute(state);
 
@@ -220,10 +221,10 @@ namespace MiniChess.Core.Tests
         {
             var (state, u) = Game()
                 .WithRules(r => r.Ap.StartAp = 6)
-                .Place(Team.Player1, 0, 0, With(SkillIds.ChemistRootTrap))
+                .Place(Team.Player1, 0, 0, With(ChemistPiece.RootTrapId))
                 .Place(Team.Player1, 1, 4)
                 .Start();
-            Use(state, u[0], SkillIds.ChemistRootTrap, 1, 2);
+            Use(state, u[0], ChemistPiece.RootTrapId, 1, 2);
 
             MovementResult move = new MoveAction(u[1], new Position(1, 1)).Execute(state);
 
@@ -237,27 +238,27 @@ namespace MiniChess.Core.Tests
         {
             var (state, u) = Game()
                 .WithMap(".......", ".......", ".......", ".......", "C......", ".......", ".......")
-                .Place(Team.Player1, 0, 0, With(SkillIds.ChemistRootTrap))
+                .Place(Team.Player1, 0, 0, With(ChemistPiece.RootTrapId))
                 .Start();
 
-            Assert.Equal(SkillFailReason.InvalidTarget, Check(state, u[0], SkillIds.ChemistRootTrap, 0, 2));
-            Assert.DoesNotContain(new Position(0, 2), SkillQueries.GetValidTargets(state, u[0], SkillIds.ChemistRootTrap));
+            Assert.Equal(SkillFailReason.InvalidTarget, Check(state, u[0], ChemistPiece.RootTrapId, 0, 2));
+            Assert.DoesNotContain(new Position(0, 2), SkillQueries.GetValidTargets(state, u[0], ChemistPiece.RootTrapId));
         }
 
         [Fact]
         public void RootTrap_RespectsMaxActive_AndExpiresAfterLifetime()
         {
             var (state, u) = Game()
-                .Place(Team.Player1, 3, 3, With(SkillIds.ChemistRootTrap))
+                .Place(Team.Player1, 3, 3, With(ChemistPiece.RootTrapId))
                 .Place(Team.Player2, 6, 6)
                 .Start();
 
-            Use(state, u[0], SkillIds.ChemistRootTrap, 3, 5); // 턴 1
+            Use(state, u[0], ChemistPiece.RootTrapId, 3, 5); // 턴 1
             EndTurn(state); EndTurn(state);
-            Use(state, u[0], SkillIds.ChemistRootTrap, 3, 1); // 턴 3
+            Use(state, u[0], ChemistPiece.RootTrapId, 3, 1); // 턴 3
             EndTurn(state); EndTurn(state);
 
-            Assert.Equal(SkillFailReason.ConditionNotMet, Check(state, u[0], SkillIds.ChemistRootTrap, 5, 3)); // 턴 5: 최대 2개
+            Assert.Equal(SkillFailReason.ConditionNotMet, Check(state, u[0], ChemistPiece.RootTrapId, 5, 3)); // 턴 5: 최대 2개
 
             // 첫 덫(수명 3): 턴 3, 5, 7 의 P1 종료에 감소 → 턴 7 종료에 만료
             EndTurn(state); EndTurn(state);
@@ -275,11 +276,11 @@ namespace MiniChess.Core.Tests
         public void PoisonGas_DamagesEnemyOnItsTurnEnd_ForLifetime_AndAllowsOneZone()
         {
             var (state, u) = Game()
-                .Place(Team.Player1, 0, 0, With(SkillIds.ChemistPoisonGas))
+                .Place(Team.Player1, 0, 0, With(ChemistPiece.PoisonGasId))
                 .Place(Team.Player2, 3, 3)
                 .Start();
 
-            SkillResult result = Use(state, u[0], SkillIds.ChemistPoisonGas, 2, 2);
+            SkillResult result = Use(state, u[0], ChemistPiece.PoisonGasId, 2, 2);
             Assert.Equal(new[] { new Position(2, 2), new Position(3, 2), new Position(2, 3), new Position(3, 3) }, result.AffectedCells);
 
             EndTurn(state); // P1 종료: 적 소유자 턴 아님
@@ -287,7 +288,7 @@ namespace MiniChess.Core.Tests
             EndTurn(state); // P2 종료: 1
             Assert.Equal(9, u[1].Stats.CurrentHp);
 
-            Assert.Equal(SkillFailReason.ConditionNotMet, Check(state, u[0], SkillIds.ChemistPoisonGas, 0, 2));
+            Assert.Equal(SkillFailReason.ConditionNotMet, Check(state, u[0], ChemistPiece.PoisonGasId, 0, 2));
 
             EndTurn(state); // P1 종료: 수명 2 → 1
             EndTurn(state); // P2 종료: 2
@@ -295,7 +296,7 @@ namespace MiniChess.Core.Tests
             EndTurn(state); // P1 종료: 수명 0, 전체 제거
             Assert.Null(state.Board.GetCell(new Position(2, 2)).GetEffect(CellEffectLayer.AreaEffect));
             EndTurn(state); // P2 종료 → P1 턴
-            Assert.Equal(SkillFailReason.None, Check(state, u[0], SkillIds.ChemistPoisonGas, 0, 2));
+            Assert.Equal(SkillFailReason.None, Check(state, u[0], ChemistPiece.PoisonGasId, 0, 2));
         }
 
         // 명세 14: "턴 시작 회복 초원" → 지정한 Turn Start 에만 회복
@@ -303,14 +304,14 @@ namespace MiniChess.Core.Tests
         public void HealingMeadow_HealsAlliesAtTheirTurnStart()
         {
             var (state, u) = Game()
-                .Place(Team.Player1, 1, 1, With(SkillIds.GardenerHealingMeadow))
+                .Place(Team.Player1, 1, 1, With(GardenerPiece.HealingMeadowId))
                 .Place(Team.Player1, 2, 2)
                 .Place(Team.Player2, 0, 0, TestGame.Stats(hp: 10))
                 .Start();
             DamageSystem.Apply(state, new DamageRequest(null, u[1], 5, DamageType.Direct));
             DamageSystem.Apply(state, new DamageRequest(null, u[2], 5, DamageType.Direct));
 
-            Use(state, u[0], SkillIds.GardenerHealingMeadow, 1, 1); // 자기 칸 중심 3×3
+            Use(state, u[0], GardenerPiece.HealingMeadowId, 1, 1); // 자기 칸 중심 3×3
             EndTurn(state); // P1 종료: 회복 없음
             Assert.Equal(5, u[1].Stats.CurrentHp);
 
@@ -324,14 +325,14 @@ namespace MiniChess.Core.Tests
         public void PoisonGas_OverwritesOverlappingMeadowTiles_OthersRemain()
         {
             var (state, u) = Game()
-                .Place(Team.Player1, 1, 1, With(SkillIds.GardenerHealingMeadow))
-                .Place(Team.Player1, 5, 5, With(SkillIds.ChemistPoisonGas))
+                .Place(Team.Player1, 1, 1, With(GardenerPiece.HealingMeadowId))
+                .Place(Team.Player1, 5, 5, With(ChemistPiece.PoisonGasId))
                 .Place(Team.Player2, 6, 0)
                 .Start();
-            Use(state, u[0], SkillIds.GardenerHealingMeadow, 1, 1); // (0..2, 0..2)
+            Use(state, u[0], GardenerPiece.HealingMeadowId, 1, 1); // (0..2, 0..2)
             EndTurn(state); EndTurn(state);
 
-            Use(state, u[1], SkillIds.ChemistPoisonGas, 2, 2); // (2..3, 2..3)
+            Use(state, u[1], ChemistPiece.PoisonGasId, 2, 2); // (2..3, 2..3)
 
             Assert.IsType<DamageField>(state.Board.GetCell(new Position(2, 2)).GetEffect(CellEffectLayer.AreaEffect));
             Assert.IsType<HealField>(state.Board.GetCell(new Position(0, 0)).GetEffect(CellEffectLayer.AreaEffect));

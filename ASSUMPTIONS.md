@@ -70,7 +70,7 @@
 | 이동 계열 스킬(분신 교환 등)의 사용 가능 판정 | 전투 행동 후 잠금/행동 종료만 검사. 속박 등 상태에 의한 제한은 실제 이동을 수행하는 효과에서 검사 | `UseSkillAction.CheckTurnState` | 4.4 "본체 속박 시 사용 가능 여부" |
 | 범위 효과로 칸 효과 설치 시 설치 불가 칸 | 해당 칸만 건너뛰고 나머지는 설치(스킬 실패로 보지 않음) | `PlaceCellEffect` | 명시 없음 |
 | 정사각형 범위의 벽 칸 | 범위에 포함. 유닛이 없으므로 피해/회복 대상이 아니며 칸 효과는 설치되지 않음 | `SquareArea` | 3.4 |
-| 강타의 "인접" | 사거리 1, 체비셰프(대각선 포함) | `CharacterSkills.WarriorSmash` | 7.2 |
+| 강타의 "인접" | 사거리 1, 체비셰프(대각선 포함) | `WarriorPiece.Smash` | 7.2 |
 | 직사각형 범위(독가스 2×2)의 기준점 | 지정 칸이 왼쪽 아래 모서리 | `RectArea` | 9.3 "최종 모양" |
 | 장판/덫 수명 | 구역(한 번의 시전) 단위로 설치한 쪽 소유자의 Turn End 마다 1 감소, 설치한 턴의 종료는 세지 않음. 일부 칸이 덮어써져도 남은 칸은 같은 수명으로 함께 사라짐 | `FieldZone` | 3.4, 9.2, 9.3 |
 | 동시 설치 한도 도달 시 | 새 설치를 거부(오래된 것을 교체하지 않음) | `MaxActiveZonesCondition` | 9.2, 9.3 |
@@ -78,11 +78,11 @@
 | 속박 지속 기준 | 대상 소유자의 Turn End 횟수, 부여된 턴의 종료는 세지 않음. 대상이 자기 턴에 덫을 밟으면 그 턴의 남은 시간 + 다음 자기 턴까지 속박 | `StatusLibrary.Root` | 9.2, 12.3, 13.4 |
 | 덫 피해의 종류 | `DamageType.Area` (장판·덫 같은 설치물 피해로 분류) | `RootTrap` | 13.3 |
 | 덫 발동 대상 | 적만. 아군은 지나가도 발동하지 않음 | `RootTrap` | 9.2 "적의 진입" |
-| 덫 설치 칸 | 유닛이 없는 칸, 덫을 설치할 수 있는 칸(점령 칸 제외)만 지정 가능 | `CharacterSkills.ChemistRootTrap` | 9.2 |
+| 덫 설치 칸 | 유닛이 없는 칸, 덫을 설치할 수 있는 칸(점령 칸 제외)만 지정 가능 | `ChemistPiece.RootTrap` | 9.2 |
 | 화상/독가스/회복 장판 발동 시점 | 화상: 대상 소유자 Turn End(DoT 단계). 독가스: 적 소유자 Turn End(장판 단계). 회복 초원: 아군 소유자 Turn Start(긍정 효과 단계) | `StatusLibrary.Burn`, `DamageField`, `HealField` | 6.2, 9.3, 10.3 |
 | 회복 초원의 "누구의 턴 시작" | 아군만 회복하므로 대상 소유자와 시전자 소유자가 같은 팀 → 구분 불필요 | `HealField` | 6.2 |
-| 회복 초원 중심 | 사거리 안의 벽 아닌 칸, 자기 칸 포함 | `CharacterSkills.GardenerHealingMeadow` | 6.2 "시전 중심" |
-| 즉시 피해/사슬 피해 "유무" | 수치로 설정, 0 이면 없음 | `CharacterSkills` | 10.3, 12.3 |
+| 회복 초원 중심 | 사거리 안의 벽 아닌 칸, 자기 칸 포함 | `GardenerPiece.HealingMeadow` | 6.2 "시전 중심" |
+| 즉시 피해/사슬 피해 "유무" | 수치로 설정, 0 이면 없음 | `SkillBuildUtil.AddOptionalDamage` | 10.3, 12.3 |
 | 점령 진행도 초기화 시점 | 점령 칸에 그 팀 유닛이 없게 되는 즉시(이동·사망) 0. 같은 턴에 다시 올라가도 이어지지 않음 | `CaptureSystem.OnOccupancyChanged` | 3.5 (사용자: "연속으로 올라가 있어야 함") |
 | 점령 판정 단계 | 자기 Turn Start 의 마지막(예약 효과 뒤). 시작 효과로 유닛이 사라지면 세지 않음 | `TurnSystem.BeginTurn` | 3.3, 3.5 |
 | `ActiveFromStart = false` | 활성화 수단이 없어 점령이 일어나지 않음 | `CaptureState` | 3.5 |
