@@ -10,6 +10,7 @@ namespace MiniChess.Core.Statuses.Library
     {
         public const string RootId = "ROOT";
         public const string BurnId = "BURN";
+        public const string DistanceLimitId = "DISTANCE_LIMIT";
 
         /// <summary>
         /// 속박(이동 불가). 사슬 속박과 속박 덫이 같은 개념을 쓴다(명세 9.2, 12.3).
@@ -44,6 +45,23 @@ namespace MiniChess.Core.Statuses.Library
                 new StatusTiming(TurnStep.EndDurationTick, TimingOwner.TargetOwner, includeApplicationTurn: false),
                 new StatusTiming(TurnStep.EndDamageOverTime, TimingOwner.TargetOwner, includeApplicationTurn: false),
                 new BurnBehavior(damagePerTrigger.Value));
+        }
+
+        /// <summary>
+        /// 이동 거리 제한(볼라). 대상의 이번 턴 자발적 이동을 누적 maxCells 칸으로 제한한다(명세 8.3 [설계안]).
+        /// 지속은 속박과 같이 "대상 소유자의 턴 종료" 횟수로 세며, 부여된 턴의 종료는 세지 않는다. 다시 걸면 갱신한다.
+        /// </summary>
+        public static StatusDefinition DistanceLimit(int? maxCells, int? targetTurns)
+        {
+            if (maxCells == null || targetTurns == null)
+                return null;
+
+            return new StatusDefinition(
+                DistanceLimitId,
+                targetTurns.Value,
+                StatusStackPolicy.Refresh,
+                new StatusTiming(TurnStep.EndDurationTick, TimingOwner.TargetOwner, includeApplicationTurn: false),
+                behavior: new DistanceLimitBehavior(maxCells.Value));
         }
     }
 }

@@ -161,6 +161,12 @@ namespace MiniChess.Core.Presets
             t.Gardener.SingleShield.Range = 2;
             t.Gardener.SingleShield.Amount = 3;
 
+            t.Archer.Bola.ApCost = 3;
+            t.Archer.Bola.Range = 3;
+            t.Archer.Bola.Damage = 1;
+            t.Archer.Bola.MaxCells = 2;
+            t.Archer.Bola.TargetTurns = 1;
+
             return t;
         }
 

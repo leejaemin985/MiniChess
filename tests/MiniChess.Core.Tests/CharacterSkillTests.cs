@@ -47,7 +47,7 @@ namespace MiniChess.Core.Tests
         {
             SkillDefinition[] skills = PresetSkills();
 
-            Assert.Equal(8, skills.Length);
+            Assert.Equal(9, skills.Length);
             Assert.All(skills, s => Assert.Empty(s.GetConfigIssues()));
         }
 
@@ -70,7 +70,7 @@ namespace MiniChess.Core.Tests
             var ids = PresetSkills().Select(s => s.Id).ToHashSet();
             var slotted = PieceModules.CreateDefinitions().SelectMany(c => c.SkillSlots).Where(id => id != null).ToList();
 
-            Assert.Equal(8, slotted.Count);
+            Assert.Equal(9, slotted.Count);
             Assert.All(slotted, id => Assert.Contains(id, ids));
         }
 
@@ -405,6 +405,79 @@ namespace MiniChess.Core.Tests
 
             Assert.Equal(6, u[0].Stats.Shield);
             Assert.Equal(new[] { ShieldReward.ShieldId, GardenerPiece.SingleShieldId }, u[0].Stats.Shields.Select(s => s.Id));
+        }
+
+        #endregion
+
+        #region Bola
+
+        // 명세 14: "볼라 대상이 이동 명령을 나누어 사용" → 누적 합산, 명령 분할로 우회 불가
+        [Fact]
+        public void Bola_Damages_AndLimitsAccumulatedVoluntaryMovesOnTargetsNextTurn()
+        {
+            var (state, u) = Game()
+                .Place(Team.Player1, 0, 0, With(ArcherPiece.BolaId))
+                .Place(Team.Player2, 2, 2, TestGame.Stats(hp: 10))
+                .Start();
+
+            Use(state, u[0], ArcherPiece.BolaId, 2, 2);
+            Assert.Equal(9, u[1].Stats.CurrentHp);
+            EndTurn(state);
+
+            Assert.Equal(MoveFailReason.DistanceLimited, new MoveAction(u[1], new Position(2, 5)).Validate(state));
+            new MoveAction(u[1], new Position(2, 3)).Execute(state);
+            new MoveAction(u[1], new Position(2, 4)).Execute(state);
+            Assert.Equal(MoveFailReason.DistanceLimited, new MoveAction(u[1], new Position(2, 5)).Validate(state));
+        }
+
+        [Fact]
+        public void Bola_DoesNotLimitExternalMoves()
+        {
+            var (state, u) = Game()
+                .Place(Team.Player1, 0, 0, With(ArcherPiece.BolaId))
+                .Place(Team.Player2, 2, 2)
+                .Start();
+            Use(state, u[0], ArcherPiece.BolaId, 2, 2);
+
+            MovementResult result = MovementResolver.Resolve(
+                state, u[1], u[0], MoveKind.Knockback, new[] { new Position(3, 2), new Position(4, 2), new Position(5, 2) });
+
+            Assert.Equal(3, result.CellsMoved);
+        }
+
+        [Fact]
+        public void Bola_ExpiresAfterTargetsNextTurn()
+        {
+            var (state, u) = Game()
+                .Place(Team.Player1, 0, 0, With(ArcherPiece.BolaId))
+                .Place(Team.Player2, 2, 2)
+                .Start();
+            Use(state, u[0], ArcherPiece.BolaId, 2, 2);
+            EndTurn(state); // P1 종료 → P2 턴: 제한 중
+            Assert.NotNull(u[1].FindStatus(StatusLibrary.DistanceLimitId));
+
+            EndTurn(state); // P2 종료: 1 감소 → 해제
+            EndTurn(state); // P1 종료 → P2 턴
+
+            Assert.Null(u[1].FindStatus(StatusLibrary.DistanceLimitId));
+            Assert.Equal(MoveFailReason.None, new MoveAction(u[1], new Position(2, 5)).Validate(state));
+        }
+
+        [Fact]
+        public void Bola_Reapply_RefreshesInsteadOfStacking()
+        {
+            var (state, u) = Game()
+                .Place(Team.Player1, 0, 0, With(ArcherPiece.BolaId))
+                .Place(Team.Player1, 0, 1, With(ArcherPiece.BolaId))
+                .Place(Team.Player2, 2, 2, TestGame.Stats(hp: 10))
+                .Start();
+            state.GetPlayer(Team.Player1).Ap.Recover(6);
+
+            Use(state, u[0], ArcherPiece.BolaId, 2, 2);
+            Use(state, u[1], ArcherPiece.BolaId, 2, 2);
+
+            Assert.Single(u[2].Statuses, s => s.Definition.Id == StatusLibrary.DistanceLimitId);
+            Assert.Same(u[1], u[2].FindStatus(StatusLibrary.DistanceLimitId).Source);
         }
 
         #endregion
