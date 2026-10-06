@@ -157,6 +157,10 @@ namespace MiniChess.Core.Presets
             t.Gardener.HealingMeadow.Heal = 1;
             t.Gardener.HealingMeadow.Lifetime = 2;
 
+            t.Gardener.SingleShield.ApCost = 3;
+            t.Gardener.SingleShield.Range = 2;
+            t.Gardener.SingleShield.Amount = 3;
+
             return t;
         }
 

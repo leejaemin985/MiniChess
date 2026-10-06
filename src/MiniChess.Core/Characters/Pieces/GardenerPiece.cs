@@ -11,22 +11,24 @@ namespace MiniChess.Core.Characters.Pieces
 {
     /// <summary>
     /// 원예부 선배 수호자 (명세 6).
-    /// 스킬 1 회복 초원. 스킬 2 단일 보호막: 미구현.
+    /// 스킬 1 회복 초원, 스킬 2 단일 보호막.
     /// </summary>
     public class GardenerPiece : PieceModule
     {
         public const string PieceId = "GARDENER";
         public const string HealingMeadowId = "GARDENER_HEALING_MEADOW";
+        public const string SingleShieldId = "GARDENER_SINGLE_SHIELD";
 
         public override string Id => PieceId;
         public override string Name => "원예부 선배 수호자";
         public override CharacterRole Role => CharacterRole.Guardian;
         public override string Skill1Id => HealingMeadowId;
-        public override string Skill2Id => null;
+        public override string Skill2Id => SingleShieldId;
 
         public override IEnumerable<SkillDefinition> CreateSkills(SkillTuning tuning)
         {
             yield return HealingMeadow(tuning.Gardener.HealingMeadow);
+            yield return SingleShield(tuning.Gardener.SingleShield);
         }
 
         /// <summary>
@@ -49,11 +51,37 @@ namespace MiniChess.Core.Characters.Pieces
                     new TuningRequirement((nameof(t.Heal), t.Heal)),
                 });
         }
+
+        /// <summary>
+        /// 단일 보호막: 아군 1명(자신 포함)에게 보호막을 준다(명세 6.3, 사용자 확정: 보호막안 채택, 자신 대상 허용).
+        /// 보호막 Id 는 스킬 Id 와 같다. 같은 대상에 다시 쓰면 중첩 없이 재충전되고, 소멸 기한은 없다.
+        /// </summary>
+        public static SkillDefinition SingleShield(SingleShieldTuning t)
+        {
+            return new SkillDefinition(
+                SingleShieldId, "단일 보호막", t.ApCost, SkillActionKind.Combat,
+                new UnitTargeting(TargetFilter.AllyOrSelf, t.Range),
+                new SingleCellArea(),
+                new SkillEffect[] { new ApplyShieldEffect(SingleShieldId, t.Amount, TargetFilter.AllyOrSelf) });
+        }
     }
 
     public class GardenerTuning
     {
         public HealingMeadowTuning HealingMeadow { get; } = new HealingMeadowTuning();
+        public SingleShieldTuning SingleShield { get; } = new SingleShieldTuning();
+    }
+
+    /// <summary>단일 보호막(명세 6.3).</summary>
+    public class SingleShieldTuning
+    {
+        public int? ApCost { get; set; }
+
+        /// <summary>대상 아군을 지정할 수 있는 거리.</summary>
+        public int? Range { get; set; }
+
+        /// <summary>보호막 양.</summary>
+        public int? Amount { get; set; }
     }
 
     /// <summary>회복 초원(명세 6.2).</summary>

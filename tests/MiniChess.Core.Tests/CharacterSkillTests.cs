@@ -1,4 +1,5 @@
 using MiniChess.Core.Actions;
+using MiniChess.Core.Capture;
 using MiniChess.Core.Characters;
 using MiniChess.Core.Characters.Pieces;
 using MiniChess.Core.Combat;
@@ -46,7 +47,7 @@ namespace MiniChess.Core.Tests
         {
             SkillDefinition[] skills = PresetSkills();
 
-            Assert.Equal(7, skills.Length);
+            Assert.Equal(8, skills.Length);
             Assert.All(skills, s => Assert.Empty(s.GetConfigIssues()));
         }
 
@@ -69,7 +70,7 @@ namespace MiniChess.Core.Tests
             var ids = PresetSkills().Select(s => s.Id).ToHashSet();
             var slotted = PieceModules.CreateDefinitions().SelectMany(c => c.SkillSlots).Where(id => id != null).ToList();
 
-            Assert.Equal(7, slotted.Count);
+            Assert.Equal(8, slotted.Count);
             Assert.All(slotted, id => Assert.Contains(id, ids));
         }
 
@@ -337,6 +338,73 @@ namespace MiniChess.Core.Tests
             Assert.IsType<DamageField>(state.Board.GetCell(new Position(2, 2)).GetEffect(CellEffectLayer.AreaEffect));
             Assert.IsType<HealField>(state.Board.GetCell(new Position(0, 0)).GetEffect(CellEffectLayer.AreaEffect));
             Assert.IsType<HealField>(state.Board.GetCell(new Position(2, 1)).GetEffect(CellEffectLayer.AreaEffect));
+        }
+
+        #endregion
+
+        #region Shield
+
+        [Fact]
+        public void SingleShield_ShieldsAlly_SpendsAp_AndUsesCombatAction()
+        {
+            var (state, u) = Game()
+                .Place(Team.Player1, 1, 1, With(GardenerPiece.SingleShieldId))
+                .Place(Team.Player1, 3, 3)
+                .Place(Team.Player2, 6, 6)
+                .Start();
+
+            Use(state, u[0], GardenerPiece.SingleShieldId, 3, 3);
+
+            Assert.Equal(3, u[1].Stats.FindShield(GardenerPiece.SingleShieldId).Amount);
+            Assert.Same(u[0], u[1].Stats.FindShield(GardenerPiece.SingleShieldId).Source);
+            Assert.Equal(1, state.GetPlayer(Team.Player1).Ap.Current);
+            Assert.True(u[0].TurnState.CombatActionUsed);
+        }
+
+        [Fact]
+        public void SingleShield_CanTargetSelf_ButNotEnemy()
+        {
+            var (state, u) = Game()
+                .Place(Team.Player1, 1, 1, With(GardenerPiece.SingleShieldId))
+                .Place(Team.Player2, 2, 2)
+                .Start();
+
+            Assert.Equal(SkillFailReason.InvalidTarget, Check(state, u[0], GardenerPiece.SingleShieldId, 2, 2));
+
+            Use(state, u[0], GardenerPiece.SingleShieldId, 1, 1);
+            Assert.Equal(3, u[0].Stats.Shield);
+        }
+
+        [Fact]
+        public void SingleShield_RecastOnSameTarget_RechargesWithoutStacking()
+        {
+            var (state, u) = Game()
+                .Place(Team.Player1, 1, 1, With(GardenerPiece.SingleShieldId))
+                .Place(Team.Player2, 6, 6)
+                .Start();
+            Use(state, u[0], GardenerPiece.SingleShieldId, 1, 1);
+            DamageSystem.Apply(state, new DamageRequest(null, u[0], 2, DamageType.Direct)); // 3 → 1
+            EndTurn(state); EndTurn(state);
+
+            Use(state, u[0], GardenerPiece.SingleShieldId, 1, 1);
+
+            Assert.Equal(3, u[0].Stats.Shield);
+            Assert.Single(u[0].Stats.Shields);
+        }
+
+        [Fact]
+        public void SingleShield_AddsToShieldWithDifferentId()
+        {
+            var (state, u) = Game()
+                .Place(Team.Player1, 1, 1, With(GardenerPiece.SingleShieldId))
+                .Place(Team.Player2, 6, 6)
+                .Start();
+            DamageSystem.AddShield(state, u[0], ShieldReward.ShieldId, 3, source: null);
+
+            Use(state, u[0], GardenerPiece.SingleShieldId, 1, 1);
+
+            Assert.Equal(6, u[0].Stats.Shield);
+            Assert.Equal(new[] { ShieldReward.ShieldId, GardenerPiece.SingleShieldId }, u[0].Stats.Shields.Select(s => s.Id));
         }
 
         #endregion
