@@ -1,6 +1,5 @@
 using MiniChess.Core.Capture;
 using MiniChess.Core.Common;
-using MiniChess.Core.State;
 
 namespace MiniChess.Core.Events
 {
@@ -31,19 +30,6 @@ namespace MiniChess.Core.Events
         {
             Team = team;
             Reward = reward;
-        }
-    }
-
-    /// <summary>유닛의 보호막 양이 바뀌었다(획득 또는 피해 흡수).</summary>
-    public class UnitShieldChangedEvent : GameEvent
-    {
-        public Unit Unit { get; }
-        public int ShieldAfter { get; }
-
-        public UnitShieldChangedEvent(Unit unit, int shieldAfter)
-        {
-            Unit = unit;
-            ShieldAfter = shieldAfter;
         }
     }
 }

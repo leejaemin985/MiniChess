@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using MiniChess.Core.Events;
 using MiniChess.Core.State;
@@ -26,7 +27,9 @@ namespace MiniChess.Core.Combat
                 amount = Math.Max(0, interceptor.Intercept(state, request, amount));
 
             // [가정] 보호막은 피해 종류와 무관하게, 가로채기(호위 등)가 끝난 뒤의 피해를 흡수한다.
-            int absorbed = target.Stats.AbsorbWithShield(amount);
+            int shieldBefore = target.Stats.Shield;
+            List<(ShieldInstance Shield, int Absorbed)> usedShields = target.Stats.AbsorbWithShields(amount);
+            int absorbed = usedShields.Sum(used => used.Absorbed);
             amount -= absorbed;
 
             int hpBefore = target.Stats.CurrentHp;
@@ -35,15 +38,24 @@ namespace MiniChess.Core.Combat
 
             state.Events.Record(new UnitDamagedEvent(
                 request.Source, target, request.Type, request.Amount, applied, target.Stats.CurrentHp, absorbed));
-            if (absorbed > 0)
-                state.Events.Record(new UnitShieldChangedEvent(target, target.Stats.Shield));
+
+            int shieldAfter = shieldBefore;
+            foreach ((ShieldInstance shield, int used) in usedShields)
+            {
+                shieldAfter -= used;
+                state.Events.Record(new UnitShieldChangedEvent(target, shield.Id, shield.Amount, shieldAfter));
+            }
 
             bool killed = DeathSystem.HandleIfDead(state, target);
             return new DamageOutcome(applied, killed);
         }
 
-        /// <summary>보호막을 더한다. 보드 위에 살아 있는 대상만 처리한다.</summary>
-        internal static void AddShield(GameState state, Unit target, int amount)
+        /// <summary>
+        /// 보호막을 부여한다. 같은 Id 의 보호막이 있으면 중첩하지 않고 새 양으로 재충전한다.
+        /// 보드 위에 살아 있는 대상만 처리한다.
+        /// </summary>
+        /// <param name="source">보호막을 준 유닛. 유닛이 아닌 출처면 null.</param>
+        internal static void AddShield(GameState state, Unit target, string shieldId, int amount, Unit source)
         {
             if (state == null) throw new ArgumentNullException(nameof(state));
             if (target == null) throw new ArgumentNullException(nameof(target));
@@ -51,8 +63,8 @@ namespace MiniChess.Core.Combat
             if (!target.IsAlive || !target.IsPlaced || amount <= 0)
                 return;
 
-            target.Stats.AddShield(amount);
-            state.Events.Record(new UnitShieldChangedEvent(target, target.Stats.Shield));
+            ShieldInstance shield = target.Stats.SetShield(shieldId, amount, source);
+            state.Events.Record(new UnitShieldChangedEvent(target, shield.Id, shield.Amount, target.Stats.Shield));
         }
 
         /// <summary>회복을 적용한다. 보드 위에 살아 있는 대상만 처리한다.</summary>

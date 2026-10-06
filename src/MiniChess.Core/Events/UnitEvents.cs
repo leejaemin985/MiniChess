@@ -91,4 +91,27 @@ namespace MiniChess.Core.Events
             Position = position;
         }
     }
+
+    /// <summary>유닛의 보호막 하나(Id 기준)의 양이 바뀌었다(부여/재충전 또는 피해 흡수). 0 이면 그 보호막은 사라졌다.</summary>
+    public class UnitShieldChangedEvent : GameEvent
+    {
+        public Unit Unit { get; }
+
+        /// <summary>바뀐 보호막의 Id.</summary>
+        public string ShieldId { get; }
+
+        /// <summary>이 Id 보호막의 바뀐 뒤 양.</summary>
+        public int AmountAfter { get; }
+
+        /// <summary>유닛의 모든 보호막 합(바뀐 뒤).</summary>
+        public int ShieldAfter { get; }
+
+        public UnitShieldChangedEvent(Unit unit, string shieldId, int amountAfter, int shieldAfter)
+        {
+            Unit = unit;
+            ShieldId = shieldId;
+            AmountAfter = amountAfter;
+            ShieldAfter = shieldAfter;
+        }
+    }
 }
