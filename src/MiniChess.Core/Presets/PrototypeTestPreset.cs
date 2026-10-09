@@ -125,6 +125,18 @@ namespace MiniChess.Core.Presets
             t.Archer.AimedShot.Range = 5;
             t.Archer.AimedShot.Damage = 3;
 
+            t.Flame.FlameZone.ApCost = 5;
+            t.Flame.FlameZone.Range = 3;
+            t.Flame.FlameZone.Area.Shape = new[]
+            {
+                "###",
+                "#@#",
+                "###",
+            };
+            t.Flame.FlameZone.Damage = 2;
+            t.Flame.FlameZone.Lifetime = 2;
+            t.Flame.FlameZone.MaxActive = 1;
+
             t.Flame.CompressedShell.ApCost = 3;
             t.Flame.CompressedShell.Range = 3;
             t.Flame.CompressedShell.ImpactDamage = 1;

@@ -47,7 +47,7 @@ namespace MiniChess.Core.Tests
         {
             SkillDefinition[] skills = PresetSkills();
 
-            Assert.Equal(9, skills.Length);
+            Assert.Equal(10, skills.Length);
             Assert.All(skills, s => Assert.Empty(s.GetConfigIssues()));
         }
 
@@ -70,7 +70,7 @@ namespace MiniChess.Core.Tests
             var ids = PresetSkills().Select(s => s.Id).ToHashSet();
             var slotted = PieceModules.CreateDefinitions().SelectMany(c => c.SkillSlots).Where(id => id != null).ToList();
 
-            Assert.Equal(9, slotted.Count);
+            Assert.Equal(10, slotted.Count);
             Assert.All(slotted, id => Assert.Contains(id, ids));
         }
 
@@ -300,6 +300,30 @@ namespace MiniChess.Core.Tests
             Assert.Null(state.Board.GetCell(new Position(2, 2)).GetEffect(CellEffectLayer.AreaEffect));
             EndTurn(state); // P2 종료 → P1 턴
             Assert.Equal(SkillFailReason.None, Check(state, u[0], ChemistPiece.PoisonGasId, 0, 2));
+        }
+
+        [Fact]
+        public void FlameZone_DamagesEnemiesIn3x3OnTheirTurnEnd_AndAllowsOneZone()
+        {
+            var (state, u) = Game()
+                .Place(Team.Player1, 0, 0, With(FlamePiece.FlameZoneId))
+                .Place(Team.Player2, 4, 4) // 범위 안 (모서리)
+                .Place(Team.Player2, 5, 5) // 범위 밖
+                .WithRules(r => r.Ap.StartAp = 6)
+                .Start();
+
+            Assert.Equal(SkillFailReason.InvalidTarget, Check(state, u[0], FlamePiece.FlameZoneId, 4, 4)); // 사거리 3 초과
+
+            SkillResult result = Use(state, u[0], FlamePiece.FlameZoneId, 3, 3);
+            Assert.Equal(9, result.AffectedCells.Count);
+
+            EndTurn(state); // P1 종료: 적 소유자 턴 아님
+            Assert.Equal(10, u[1].Stats.CurrentHp);
+            EndTurn(state); // P2 종료
+            Assert.Equal(8, u[1].Stats.CurrentHp);
+            Assert.Equal(10, u[2].Stats.CurrentHp);
+
+            Assert.Equal(SkillFailReason.ConditionNotMet, Check(state, u[0], FlamePiece.FlameZoneId, 1, 1));
         }
 
         // 명세 14: "턴 시작 회복 초원" → 지정한 Turn Start 에만 회복

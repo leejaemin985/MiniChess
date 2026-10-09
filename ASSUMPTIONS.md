@@ -49,6 +49,7 @@
 |---|---|---|---|
 | WARRIOR_SMASH 강타 | 3 | 1(고정, 인접) | 피해 5 |
 | ARCHER_AIMED_SHOT 장거리 조준 | 3 | 5 | 피해 3 |
+| FLAME_FLAME_ZONE 화염지대 | 5 | 3 | 3×3(선택 칸 중심), 피해 2, 수명 2, 동시 1개. 명세의 "높은 AP 부담"에 맞춰 AP 5 |
 | FLAME_COMPRESSED_SHELL 압축열탄 | 3 | 3 | 즉시 1, 화상 1 × 2회 |
 | CHEMIST_ROOT_TRAP 속박 덫 | 3 | 2 | 피해 1, 속박 1, 동시 2개, 수명 3, 일회용 |
 | CHEMIST_POISON_GAS 독가스 | 3 | 3 | 2×2, 피해 1, 수명 2, 동시 1개 |
@@ -81,7 +82,7 @@
 | 덫 피해의 종류 | `DamageType.Area` (장판·덫 같은 설치물 피해로 분류) | `RootTrap` | 13.3 |
 | 덫 발동 대상 | 적만. 아군은 지나가도 발동하지 않음 | `RootTrap` | 9.2 "적의 진입" |
 | 덫 설치 칸 | 유닛이 없는 칸, 덫을 설치할 수 있는 칸(점령 칸 제외)만 지정 가능 | `ChemistPiece.RootTrap` | 9.2 |
-| 화상/독가스/회복 장판 발동 시점 | 화상: 대상 소유자 Turn End(DoT 단계). 독가스: 적 소유자 Turn End(장판 단계). 회복 초원: 아군 소유자 Turn Start(긍정 효과 단계) | `StatusLibrary.Burn`, `DamageField`, `HealField` | 6.2, 9.3, 10.3 |
+| 화상/독가스/화염지대/회복 장판 발동 시점 | 화상: 대상 소유자 Turn End(DoT 단계). 독가스·화염지대: 적 소유자 Turn End(장판 단계, 화염지대는 사용자 확정). 회복 초원: 아군 소유자 Turn Start(긍정 효과 단계) | `StatusLibrary.Burn`, `DamageField`, `HealField` | 6.2, 9.3, 10.2, 10.3 |
 | 회복 초원의 "누구의 턴 시작" | 아군만 회복하므로 대상 소유자와 시전자 소유자가 같은 팀 → 구분 불필요 | `HealField` | 6.2 |
 | 회복 초원 중심 | 사거리 안의 벽 아닌 칸, 자기 칸 포함 | `GardenerPiece.HealingMeadow` | 6.2 "시전 중심" |
 | 즉시 피해/사슬 피해 "유무" | 수치로 설정, 0 이면 없음 | `SkillBuildUtil.AddOptionalDamage` | 10.3, 12.3 |
