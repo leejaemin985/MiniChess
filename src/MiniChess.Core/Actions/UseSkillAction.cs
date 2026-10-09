@@ -8,20 +8,31 @@ using MiniChess.Core.State;
 namespace MiniChess.Core.Actions
 {
     /// <summary>
-    /// 플레이어가 자기 유닛의 스킬을 지정한 칸에 사용하는 명령.
+    /// 플레이어가 자기 유닛의 스킬을 지정한 칸(들)에 사용하는 명령.
     /// 처리 순서: 검사 → SkillUsedEvent → AP 차감 → 행동 상태 반영 → 범위 계산 → 효과 순서대로 실행 → (옵션) 행동 종료.
     /// </summary>
     public class UseSkillAction
     {
         public Unit Caster { get; }
         public string SkillId { get; }
-        public Position Target { get; }
+
+        /// <summary>지정한 칸 전부(지정 순). 개수는 스킬의 Targeting.TargetCount 와 같아야 한다.</summary>
+        public IReadOnlyList<Position> Targets { get; }
+
+        /// <summary>첫 번째 지정 칸.</summary>
+        public Position Target => Targets[0];
 
         public UseSkillAction(Unit caster, string skillId, Position target)
+            : this(caster, skillId, new[] { target })
+        {
+        }
+
+        public UseSkillAction(Unit caster, string skillId, IReadOnlyList<Position> targets)
         {
             Caster = caster ?? throw new ArgumentNullException(nameof(caster));
             SkillId = skillId ?? throw new ArgumentNullException(nameof(skillId));
-            Target = target;
+            Targets = targets ?? throw new ArgumentNullException(nameof(targets));
+            if (targets.Count == 0) throw new ArgumentException("지정 칸이 비어 있음", nameof(targets));
         }
 
         public SkillFailReason Validate(GameState state)
@@ -30,7 +41,7 @@ namespace MiniChess.Core.Actions
             if (reason != SkillFailReason.None) return reason;
 
             SkillDefinition skill = state.Skills.Find(SkillId);
-            if (!skill.Targeting.IsValid(state, Caster, Target)) return SkillFailReason.InvalidTarget;
+            if (!skill.Targeting.IsValid(state, Caster, Targets)) return SkillFailReason.InvalidTarget;
 
             return SkillFailReason.None;
         }
@@ -79,7 +90,7 @@ namespace MiniChess.Core.Actions
             if (skill.ActionKind != SkillActionKind.Movement)
                 Caster.TurnState.MarkCombatActionUsed();
 
-            var context = new SkillContext(state, Caster, skill, Target, affectedCells);
+            var context = new SkillContext(state, Caster, skill, Targets, affectedCells);
             foreach (SkillEffect effect in skill.Effects)
             {
                 if (state.IsGameOver)

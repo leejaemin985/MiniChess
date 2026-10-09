@@ -69,6 +69,37 @@ namespace MiniChess.Core.Movement
             return new MovementResult(unit, from, unit.Position ?? lastPosition, cellsMoved, wasInterrupted);
         }
 
+        /// <summary>
+        /// 두 유닛의 자리를 맞바꾼다(경로 없음). 각자 도착 칸의 효과가 a → b 순으로 발동한다(OnEnter 후 OnStop).
+        /// 이미 도착한 칸이므로 Stop 요청은 의미가 없다. 앞선 발동으로 경기가 끝나면 나머지는 처리하지 않는다.
+        /// </summary>
+        /// <param name="initiator">교환을 일으킨 유닛. 이동 이벤트 기록용.</param>
+        internal static void ResolveSwap(GameState state, Unit a, Unit b, Unit initiator)
+        {
+            if (state == null) throw new ArgumentNullException(nameof(state));
+
+            Position positionA = a.Position.Value;
+            Position positionB = b.Position.Value;
+
+            state.Board.Swap(a, b);
+            state.Events.Record(new UnitMovedEvent(a, positionA, positionB, MoveKind.Swap, initiator));
+            state.Events.Record(new UnitMovedEvent(b, positionB, positionA, MoveKind.Swap, initiator));
+
+            foreach (Unit unit in new[] { a, b })
+            {
+                if (state.IsGameOver)
+                    break;
+                if (!unit.IsAlive)
+                    continue;
+
+                TriggerEnter(state, unit);
+                if (unit.IsAlive)
+                    TriggerStop(state, unit);
+            }
+
+            CaptureSystem.OnOccupancyChanged(state);
+        }
+
         /// <summary>현재 칸의 모든 효과에 OnEnter 를 호출한다. 하나라도 Stop 이면 true.</summary>
         private static bool TriggerEnter(GameState state, Unit unit)
         {

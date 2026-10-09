@@ -164,6 +164,23 @@ namespace MiniChess.Core.State
             unit.Position = to;
         }
 
+        /// <summary>보드 위의 두 유닛 자리를 맞바꾼다. 공간 처리만 한다.</summary>
+        internal void Swap(Unit a, Unit b)
+        {
+            if (a == null) throw new ArgumentNullException(nameof(a));
+            if (b == null) throw new ArgumentNullException(nameof(b));
+            if (!a.IsPlaced || !b.IsPlaced) throw new InvalidOperationException("교환할 유닛이 보드 위에 없음");
+            if (ReferenceEquals(a, b)) throw new InvalidOperationException("같은 유닛끼리는 교환할 수 없음");
+
+            Position positionA = a.Position.Value;
+            Position positionB = b.Position.Value;
+
+            GetCell(positionA).Occupant = b;
+            GetCell(positionB).Occupant = a;
+            a.Position = positionB;
+            b.Position = positionA;
+        }
+
         /// <summary>유닛을 보드에서 뺀다(사망 등).</summary>
         internal void Remove(Unit unit)
         {

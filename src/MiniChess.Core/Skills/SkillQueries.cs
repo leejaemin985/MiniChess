@@ -19,13 +19,19 @@ namespace MiniChess.Core.Skills
                 .ToList();
         }
 
-        /// <summary>지금 실제로 사용할 수 있는 지정 칸. 사용 불가 상태면 빈 목록.</summary>
+        /// <summary>지금 실제로 사용할 수 있는 (첫 번째) 지정 칸. 사용 불가 상태면 빈 목록.</summary>
         public static List<Position> GetValidTargets(GameState state, Unit caster, string skillId)
+        {
+            return GetValidTargets(state, caster, skillId, new List<Position>());
+        }
+
+        /// <summary>chosen 을 이미 지정했을 때 다음으로 지정할 수 있는 칸(다중 지정 스킬). 다 지정했으면 빈 목록.</summary>
+        public static List<Position> GetValidTargets(GameState state, Unit caster, string skillId, IReadOnlyList<Position> chosen)
         {
             if (UseSkillAction.ValidateUsable(state, caster, skillId) != SkillFailReason.None)
                 return new List<Position>();
 
-            return state.Skills.Find(skillId).Targeting.GetCandidates(state, caster).Distinct().ToList();
+            return state.Skills.Find(skillId).Targeting.GetCandidates(state, caster, chosen).Distinct().ToList();
         }
 
         /// <summary>해당 칸을 지정했을 때 효과가 적용될 칸(범위 미리보기). 설정 오류가 있으면 빈 목록.</summary>
