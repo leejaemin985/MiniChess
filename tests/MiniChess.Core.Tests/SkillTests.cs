@@ -19,13 +19,16 @@ namespace MiniChess.Core.Tests
     {
         private const string Strike = "STRIKE";
 
+        private static readonly PatternArea Square3x3 =
+            new PatternArea(AreaShape.Parse(new[] { "###", "#@#", "###" }), AreaAnchor.Target);
+
         /// <summary>사거리 1 적 단일 대상, 피해 5, AP 3 의 전투 스킬.</summary>
         private static SkillDefinition StrikeSkill(int? apCost = 3, int? damage = 5, int? range = 1)
         {
             return new SkillDefinition(
                 Strike, "test strike", apCost, SkillActionKind.Combat,
                 new UnitTargeting(TargetFilter.Enemy, range),
-                new SingleCellArea(),
+                PatternArea.SingleCell,
                 new SkillEffect[] { new DamageEffect(damage) });
         }
 
@@ -188,7 +191,7 @@ namespace MiniChess.Core.Tests
             const string swap = "SWAP_LIKE";
             var movementSkill = new SkillDefinition(
                 swap, "movement-like", 1, SkillActionKind.Movement,
-                new SelfTargeting(), new SingleCellArea(), Array.Empty<SkillEffect>());
+                new SelfTargeting(), PatternArea.SingleCell, Array.Empty<SkillEffect>());
             var (state, u) = new TestGame()
                 .WithSkills(movementSkill)
                 .Place(Team.Player1, 0, 0, Caster(swap))
@@ -214,7 +217,7 @@ namespace MiniChess.Core.Tests
             const string summon = "SUMMON_LIKE";
             var summonSkill = new SkillDefinition(
                 summon, "summon-like", 1, SkillActionKind.Combat,
-                new CellTargeting(1, CellRequirement.Empty, RangeShape.Orthogonal), new SingleCellArea(),
+                new CellTargeting(1, CellRequirement.Empty, RangeShape.Orthogonal), PatternArea.SingleCell,
                 Array.Empty<SkillEffect>(), endsCasterActions: true);
             var (state, u) = new TestGame()
                 .WithSkills(summonSkill)
@@ -235,7 +238,7 @@ namespace MiniChess.Core.Tests
             const string conditional = "CONDITIONAL";
             var skill = new SkillDefinition(
                 conditional, "conditional", 1, SkillActionKind.Combat,
-                new SelfTargeting(), new SingleCellArea(), Array.Empty<SkillEffect>(),
+                new SelfTargeting(), PatternArea.SingleCell, Array.Empty<SkillEffect>(),
                 new SkillCondition[] { new NeverCondition() });
             var (state, u) = new TestGame().WithSkills(skill).Place(Team.Player1, 0, 0, Caster(conditional)).Start();
 
@@ -252,7 +255,7 @@ namespace MiniChess.Core.Tests
             const string summon = "SUMMON_LIKE";
             var skill = new SkillDefinition(
                 summon, "summon-like", 1, SkillActionKind.Combat,
-                new CellTargeting(1, CellRequirement.Empty, RangeShape.Orthogonal), new SingleCellArea(),
+                new CellTargeting(1, CellRequirement.Empty, RangeShape.Orthogonal), PatternArea.SingleCell,
                 Array.Empty<SkillEffect>());
             var (state, u) = new TestGame()
                 .WithMap(".......", ".......", ".......", ".......", "...#...", ".......", ".......")
@@ -267,12 +270,12 @@ namespace MiniChess.Core.Tests
         }
 
         [Fact]
-        public void SquareAreaDamage_HitsOnlyEnemiesInArea()
+        public void PatternAreaDamage_HitsOnlyEnemiesInArea()
         {
             const string blast = "BLAST";
             var skill = new SkillDefinition(
                 blast, "blast", 2, SkillActionKind.Combat,
-                new CellTargeting(3, CellRequirement.NotWall), new SquareArea(1),
+                new CellTargeting(3, CellRequirement.NotWall), Square3x3,
                 new SkillEffect[] { new DamageEffect(2) });
             var (state, u) = new TestGame()
                 .WithSkills(skill)
@@ -295,7 +298,7 @@ namespace MiniChess.Core.Tests
             const string heal = "HEAL";
             var skill = new SkillDefinition(
                 heal, "heal", 1, SkillActionKind.Combat,
-                new UnitTargeting(TargetFilter.AllyOrSelf, 2), new SingleCellArea(),
+                new UnitTargeting(TargetFilter.AllyOrSelf, 2), PatternArea.SingleCell,
                 new SkillEffect[] { new HealEffect(3) });
             var (state, u) = new TestGame()
                 .WithSkills(skill)
@@ -317,7 +320,7 @@ namespace MiniChess.Core.Tests
                 new StatusTiming(TurnStep.EndDurationTick, TimingOwner.TargetOwner, false));
             var skill = new SkillDefinition(
                 root, "root", 1, SkillActionKind.Combat,
-                new UnitTargeting(TargetFilter.Enemy, 2), new SingleCellArea(),
+                new UnitTargeting(TargetFilter.Enemy, 2), PatternArea.SingleCell,
                 new SkillEffect[] { new ApplyStatusEffect(status) });
             var (state, u) = new TestGame()
                 .WithSkills(skill)
@@ -337,7 +340,7 @@ namespace MiniChess.Core.Tests
             const string traps = "TRAPS";
             var skill = new SkillDefinition(
                 traps, "traps", 1, SkillActionKind.Combat,
-                new CellTargeting(3, CellRequirement.NotWall), new SquareArea(1),
+                new CellTargeting(3, CellRequirement.NotWall), Square3x3,
                 new SkillEffect[] { new PlaceCellEffect((c, p) => new TestCellEffect { Layer = CellEffectLayer.Trap }) });
             var (state, u) = new TestGame()
                 .WithMap(".......", ".......", ".......", "...C...", ".......", ".......", ".......")

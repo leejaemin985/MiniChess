@@ -141,8 +141,11 @@ namespace MiniChess.Core.Presets
 
             t.Chemist.PoisonGas.ApCost = 3;
             t.Chemist.PoisonGas.Range = 3;
-            t.Chemist.PoisonGas.Width = 2;
-            t.Chemist.PoisonGas.Height = 2;
+            t.Chemist.PoisonGas.Area.Shape = new[]
+            {
+                "##",
+                "@#",
+            };
             t.Chemist.PoisonGas.Damage = 1;
             t.Chemist.PoisonGas.Lifetime = 2;
             t.Chemist.PoisonGas.MaxActive = 1;
@@ -153,7 +156,12 @@ namespace MiniChess.Core.Presets
 
             t.Gardener.HealingMeadow.ApCost = 4;
             t.Gardener.HealingMeadow.Range = 2;
-            t.Gardener.HealingMeadow.Radius = 1;
+            t.Gardener.HealingMeadow.Area.Shape = new[]
+            {
+                "###",
+                "#@#",
+                "###",
+            };
             t.Gardener.HealingMeadow.Heal = 1;
             t.Gardener.HealingMeadow.Lifetime = 2;
 

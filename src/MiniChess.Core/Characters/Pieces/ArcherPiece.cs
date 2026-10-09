@@ -37,7 +37,7 @@ namespace MiniChess.Core.Characters.Pieces
             return new SkillDefinition(
                 AimedShotId, "장거리 조준", t.ApCost, SkillActionKind.Combat,
                 new UnitTargeting(TargetFilter.Enemy, t.Range),
-                new SingleCellArea(),
+                PatternArea.SingleCell,
                 new SkillEffect[] { new DamageEffect(t.Damage) });
         }
 
@@ -54,7 +54,7 @@ namespace MiniChess.Core.Characters.Pieces
             return new SkillDefinition(
                 BolaId, "볼라 투척", t.ApCost, SkillActionKind.Combat,
                 new UnitTargeting(TargetFilter.Enemy, t.Range),
-                new SingleCellArea(),
+                PatternArea.SingleCell,
                 effects,
                 requiredTuning: SkillBuildUtil.Require(
                     (nameof(t.MaxCells), t.MaxCells),

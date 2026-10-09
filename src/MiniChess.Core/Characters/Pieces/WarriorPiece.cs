@@ -36,7 +36,7 @@ namespace MiniChess.Core.Characters.Pieces
             return new SkillDefinition(
                 SmashId, "강타", t.ApCost, SkillActionKind.Combat,
                 new UnitTargeting(TargetFilter.Enemy, 1),
-                new SingleCellArea(),
+                PatternArea.SingleCell,
                 new SkillEffect[] { new DamageEffect(t.Damage) });
         }
     }

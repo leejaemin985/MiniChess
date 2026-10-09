@@ -282,7 +282,9 @@ namespace MiniChess.Core.Tests
                 .Start();
 
             SkillResult result = Use(state, u[0], ChemistPiece.PoisonGasId, 2, 2);
-            Assert.Equal(new[] { new Position(2, 2), new Position(3, 2), new Position(2, 3), new Position(3, 3) }, result.AffectedCells);
+            Assert.Equal(
+                new[] { new Position(2, 2), new Position(3, 2), new Position(2, 3), new Position(3, 3) }.ToHashSet(),
+                result.AffectedCells.ToHashSet());
 
             EndTurn(state); // P1 종료: 적 소유자 턴 아님
             Assert.Equal(10, u[1].Stats.CurrentHp);

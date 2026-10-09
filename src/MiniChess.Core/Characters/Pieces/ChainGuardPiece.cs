@@ -41,7 +41,7 @@ namespace MiniChess.Core.Characters.Pieces
             return new SkillDefinition(
                 ChainBindId, "사슬 속박", t.ApCost, SkillActionKind.Combat,
                 new UnitTargeting(TargetFilter.Enemy, t.Range),
-                new SingleCellArea(),
+                PatternArea.SingleCell,
                 effects,
                 requiredTuning: SkillBuildUtil.Require(("Root." + nameof(root.BlocksExternalMoves), root.BlocksExternalMoves)));
         }

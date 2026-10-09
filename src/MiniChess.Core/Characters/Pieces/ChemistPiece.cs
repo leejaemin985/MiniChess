@@ -48,7 +48,7 @@ namespace MiniChess.Core.Characters.Pieces
             return new SkillDefinition(
                 RootTrapId, "속박 덫", t.ApCost, SkillActionKind.Combat,
                 new CellTargeting(t.Range, CellRequirement.Empty, placeableLayer: CellEffectLayer.Trap),
-                new SingleCellArea(),
+                PatternArea.SingleCell,
                 new SkillEffect[]
                 {
                     new PlaceZoneEffect(t.Lifetime, (zone, _) => new Effects.Zones.RootTrap(zone, damage.Value, rootStatus, singleUse.Value)),
@@ -71,8 +71,8 @@ namespace MiniChess.Core.Characters.Pieces
 
             return new SkillDefinition(
                 PoisonGasId, "독가스 설치", t.ApCost, SkillActionKind.Combat,
-                new CellTargeting(t.Range, CellRequirement.NotWall),
-                new RectArea(t.Width, t.Height),
+                SkillBuildUtil.AreaTargeting(t.Area, t.Range, CellRequirement.NotWall),
+                SkillBuildUtil.Area(t.Area),
                 new SkillEffect[]
                 {
                     new PlaceZoneEffect(t.Lifetime, (zone, _) => new DamageField(zone, damage.Value)),
@@ -119,9 +119,8 @@ namespace MiniChess.Core.Characters.Pieces
         public int? ApCost { get; set; }
         public int? Range { get; set; }
 
-        /// <summary>구역 모양(가로×세로). [설계안] 2×2.</summary>
-        public int? Width { get; set; }
-        public int? Height { get; set; }
+        /// <summary>구역 범위. [설계안] 2×2.</summary>
+        public AreaTuning Area { get; } = new AreaTuning();
 
         /// <summary>적 소유자 턴 종료마다 주는 장판 피해.</summary>
         public int? Damage { get; set; }

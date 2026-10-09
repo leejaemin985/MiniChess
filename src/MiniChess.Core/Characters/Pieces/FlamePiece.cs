@@ -39,7 +39,7 @@ namespace MiniChess.Core.Characters.Pieces
             return new SkillDefinition(
                 CompressedShellId, "압축열탄", t.ApCost, SkillActionKind.Combat,
                 new UnitTargeting(TargetFilter.Enemy, t.Range),
-                new SingleCellArea(),
+                PatternArea.SingleCell,
                 effects,
                 requiredTuning: SkillBuildUtil.Require(
                     (nameof(t.BurnDamage), t.BurnDamage),

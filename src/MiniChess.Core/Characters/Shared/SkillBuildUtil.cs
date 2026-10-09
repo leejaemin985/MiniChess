@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using MiniChess.Core.Skills;
+using MiniChess.Core.Skills.Areas;
 using MiniChess.Core.Skills.Effects;
+using MiniChess.Core.Skills.Targeting;
 
 namespace MiniChess.Core.Characters.Shared
 {
@@ -18,6 +20,23 @@ namespace MiniChess.Core.Characters.Shared
         public static (string Name, object Value)[] Require(params (string Name, object Value)[] values)
         {
             return values;
+        }
+
+        /// <summary>범위 정보로 범위 부품을 만든다.</summary>
+        public static PatternArea Area(AreaTuning area)
+        {
+            return new PatternArea(AreaShape.Parse(area.Shape), area.Anchor, area.Rotate);
+        }
+
+        /// <summary>
+        /// 범위 정보의 기준점에 맞는 지정 부품. range/requirement/includeCasterCell 은 선택 칸 기준일 때만 쓴다.
+        /// </summary>
+        public static SkillTargeting AreaTargeting(AreaTuning area, int? range, CellRequirement requirement, bool includeCasterCell = false)
+        {
+            if (area.Anchor == AreaAnchor.Target)
+                return new CellTargeting(range, requirement, includeCasterCell: includeCasterCell);
+
+            return area.Rotate ? new DirectionTargeting() : (SkillTargeting)new SelfTargeting();
         }
     }
 }

@@ -40,8 +40,8 @@ namespace MiniChess.Core.Characters.Pieces
 
             return new SkillDefinition(
                 HealingMeadowId, "회복 초원", t.ApCost, SkillActionKind.Combat,
-                new CellTargeting(t.Range, CellRequirement.NotWall, includeCasterCell: true),
-                new SquareArea(t.Radius),
+                SkillBuildUtil.AreaTargeting(t.Area, t.Range, CellRequirement.NotWall, includeCasterCell: true),
+                SkillBuildUtil.Area(t.Area),
                 new SkillEffect[]
                 {
                     new PlaceZoneEffect(t.Lifetime, (zone, _) => new HealField(zone, heal.Value)),
@@ -58,7 +58,7 @@ namespace MiniChess.Core.Characters.Pieces
             return new SkillDefinition(
                 SingleShieldId, "단일 보호막", t.ApCost, SkillActionKind.Combat,
                 new UnitTargeting(TargetFilter.AllyOrSelf, t.Range),
-                new SingleCellArea(),
+                PatternArea.SingleCell,
                 new SkillEffect[] { new ApplyShieldEffect(SingleShieldId, t.Amount, TargetFilter.AllyOrSelf) });
         }
     }
@@ -89,8 +89,8 @@ namespace MiniChess.Core.Characters.Pieces
         /// <summary>장판 중심을 지정할 수 있는 거리.</summary>
         public int? Range { get; set; }
 
-        /// <summary>중심 기준 반경. [설계안] 3×3 = 1.</summary>
-        public int? Radius { get; set; }
+        /// <summary>장판 범위. [설계안] 3×3.</summary>
+        public AreaTuning Area { get; } = new AreaTuning();
 
         /// <summary>턴 시작마다 회복량.</summary>
         public int? Heal { get; set; }
