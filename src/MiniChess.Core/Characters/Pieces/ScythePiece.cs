@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using MiniChess.Core.Characters.Shared;
 using MiniChess.Core.Data;
+using MiniChess.Core.Movement;
 using MiniChess.Core.Skills;
 using MiniChess.Core.Skills.Areas;
 using MiniChess.Core.Skills.Conditions;
@@ -22,17 +23,36 @@ namespace MiniChess.Core.Characters.Pieces
         public const string SlashId = "SCYTHE_SLASH";
         public const string ShadowCloneId = "SCYTHE_SHADOW_CLONE";
         public const string CloneUnitId = "SCYTHE_CLONE";
+        public const string CloneSwapId = "SCYTHE_CLONE_SWAP";
 
         public override string Id => PieceId;
         public override string Name => "낫 / 그림자 분신 전투원";
         public override CharacterRole Role => CharacterRole.Combat;
         public override string Skill1Id => SlashId;
         public override string Skill2Id => ShadowCloneId;
+        public override IReadOnlyList<string> ExtraSkillIds => new[] { CloneSwapId };
 
         public override IEnumerable<SkillDefinition> CreateSkills(SkillTuning tuning)
         {
             yield return Slash(tuning.Scythe.Slash);
             yield return ShadowClone(tuning.Scythe.ShadowClone);
+            yield return CloneSwap(tuning.Scythe.CloneSwap);
+        }
+
+        /// <summary>
+        /// 분신 교환: 본체가 자신의 분신과 자리를 맞바꾼다(명세 4.4, 사용자 확정: AP 고정, 거리 무제한).
+        /// 스킬 슬롯이 아닌 이동 계열 기능이라 전투 행동을 쓰지 않는다. 교환 후 본체는 공격/스킬을 쓸 수 있고,
+        /// 공격/스킬을 쓴 뒤나 소환 직후(행동 종료)에는 쓸 수 없다. 본체가 속박되면 불가.
+        /// 분신 쪽은 본체가 일으킨 외부 이동이며 분신의 행동 기록은 바뀌지 않는다.
+        /// </summary>
+        public static SkillDefinition CloneSwap(CloneSwapTuning t)
+        {
+            return new SkillDefinition(
+                CloneSwapId, "분신 교환", t.ApCost, SkillActionKind.Movement,
+                new OwnSummonTargeting(movedBy: MoveKind.Swap),
+                PatternArea.SingleCell,
+                new SkillEffect[] { new SwapWithCasterEffect() },
+                new SkillCondition[] { new CanMoveCondition(MoveKind.Swap) });
         }
 
         /// <summary>
@@ -88,6 +108,14 @@ namespace MiniChess.Core.Characters.Pieces
     {
         public SlashTuning Slash { get; } = new SlashTuning();
         public ShadowCloneTuning ShadowClone { get; } = new ShadowCloneTuning();
+        public CloneSwapTuning CloneSwap { get; } = new CloneSwapTuning();
+    }
+
+    /// <summary>분신 교환(명세 4.4).</summary>
+    public class CloneSwapTuning
+    {
+        /// <summary>교환 AP(거리 무관 고정).</summary>
+        public int? ApCost { get; set; }
     }
 
     /// <summary>일자 베기(명세 4.2).</summary>

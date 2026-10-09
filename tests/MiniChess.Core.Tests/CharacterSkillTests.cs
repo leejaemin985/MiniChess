@@ -47,7 +47,7 @@ namespace MiniChess.Core.Tests
         {
             SkillDefinition[] skills = PresetSkills();
 
-            Assert.Equal(18, skills.Length);
+            Assert.Equal(19, skills.Length);
             Assert.All(skills, s => Assert.Empty(s.GetConfigIssues()));
         }
 
@@ -1408,6 +1408,82 @@ namespace MiniChess.Core.Tests
 
             Assert.Equal(7, u[2].Stats.CurrentHp);
             Assert.NotNull(u[2].FindStatus(StatusLibrary.CurseMarkId));
+        }
+
+        #endregion
+
+        #region Clone swap
+
+        private static UnitBaseStats ScytheWithSwap() =>
+            TestGame.Stats("scythe", skills: new[] { ScythePiece.SlashId, ScythePiece.ShadowCloneId, ScythePiece.CloneSwapId });
+
+        [Fact]
+        public void CloneSwap_IsAnExtraAbility_NotASkillSlot()
+        {
+            CharacterDefinition scythe = PieceModules.CreateDefinitions().Single(c => c.Id == ScythePiece.PieceId);
+
+            Assert.DoesNotContain(ScythePiece.CloneSwapId, scythe.SkillSlots);
+            Assert.Contains(ScythePiece.CloneSwapId, scythe.ExtraSkillIds);
+        }
+
+        // 명세 4.4 + 사용자 확정: AP 1, 거리 무제한, 교환 후 본체 공격 가능
+        [Fact]
+        public void CloneSwap_SwapsWithFarClone_ThenOwnerCanStillAttack()
+        {
+            var (state, u) = Game()
+                .Place(Team.Player1, 3, 0, ScytheWithSwap())
+                .Place(Team.Player2, 3, 5)
+                .WithRules(r => r.Ap.StartAp = 6)
+                .Start();
+            Use(state, u[0], ScythePiece.ShadowCloneId, 3, 1);
+            Unit clone = CloneOf(state, u[0]);
+            new MoveAction(clone, new Position(3, 4)).Execute(state);
+            EndTurn(state);
+            EndTurn(state);
+            int apBefore = state.CurrentPlayer.Ap.Current;
+
+            Use(state, u[0], ScythePiece.CloneSwapId, 3, 4);
+
+            Assert.Equal(new Position(3, 4), u[0].Position);
+            Assert.Equal(new Position(3, 0), clone.Position);
+            Assert.Equal(apBefore - 1, state.CurrentPlayer.Ap.Current);
+            Assert.Equal(AttackFailReason.None, new AttackAction(u[0], u[1]).Validate(state));
+        }
+
+        // 명세 4.4: 공격/스킬 후에는 교환 불가, 소환 직후 행동 불능을 교환으로 우회 불가
+        [Fact]
+        public void CloneSwap_NotOnSummonTurn_NorAfterAttacking()
+        {
+            var (state, u) = Game()
+                .Place(Team.Player1, 3, 0, ScytheWithSwap())
+                .Place(Team.Player2, 4, 1)
+                .WithRules(r => r.Ap.StartAp = 6)
+                .Start();
+            Use(state, u[0], ScythePiece.ShadowCloneId, 3, 1);
+            Assert.Equal(SkillFailReason.ActionsEnded, Check(state, u[0], ScythePiece.CloneSwapId, 3, 1));
+
+            EndTurn(state);
+            EndTurn(state);
+            new AttackAction(u[0], u[1]).Execute(state);
+
+            Assert.Equal(SkillFailReason.MoveLocked, Check(state, u[0], ScythePiece.CloneSwapId, 3, 1));
+        }
+
+        [Fact]
+        public void CloneSwap_RequiresLivingClone_AndUnrootedOwner()
+        {
+            var (state, u) = Game()
+                .Place(Team.Player1, 3, 0, ScytheWithSwap())
+                .Place(Team.Player2, 6, 6)
+                .Start();
+            Assert.Equal(SkillFailReason.InvalidTarget, Check(state, u[0], ScythePiece.CloneSwapId, 3, 1)); // 분신 없음
+
+            Use(state, u[0], ScythePiece.ShadowCloneId, 3, 1);
+            EndTurn(state);
+            EndTurn(state);
+            Statuses.StatusSystem.Apply(state, StatusLibrary.Root(targetTurns: 1, blocksExternalMoves: false), u[0], u[1]);
+
+            Assert.Equal(SkillFailReason.ConditionNotMet, Check(state, u[0], ScythePiece.CloneSwapId, 3, 1));
         }
 
         #endregion

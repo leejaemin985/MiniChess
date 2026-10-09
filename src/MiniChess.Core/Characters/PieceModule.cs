@@ -24,12 +24,16 @@ namespace MiniChess.Core.Characters
         /// <summary>스킬 2 칸의 스킬 Id. 아직 구현하지 않았으면 null.</summary>
         public abstract string Skill2Id { get; }
 
+        /// <summary>스킬 슬롯이 아닌 고유 기능의 스킬 Id(예: 분신 교환). 없으면 빈 목록.</summary>
+        public virtual IReadOnlyList<string> ExtraSkillIds => Array.Empty<string>();
+
         /// <summary>수치가 비어 있는 캐릭터 정의를 새로 만든다.</summary>
         public CharacterDefinition CreateDefinition()
         {
             var definition = new CharacterDefinition(Id, Name, Role);
             definition.SkillSlots[0] = Skill1Id;
             definition.SkillSlots[1] = Skill2Id;
+            definition.ExtraSkillIds.AddRange(ExtraSkillIds);
             return definition;
         }
 

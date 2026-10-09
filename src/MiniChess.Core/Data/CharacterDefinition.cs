@@ -30,6 +30,9 @@ namespace MiniChess.Core.Data
 
         public const int SkillSlotCount = 2;
 
+        /// <summary>스킬 슬롯이 아닌 캐릭터 고유 기능의 스킬 Id(예: 낫의 분신 교환). 표현 계층은 슬롯과 따로 보여준다.</summary>
+        public List<string> ExtraSkillIds { get; } = new List<string>();
+
         public CharacterDefinition(string id, string name, CharacterRole role)
         {
             if (string.IsNullOrEmpty(id)) throw new ArgumentException("캐릭터 Id 가 비어 있음", nameof(id));
@@ -63,7 +66,7 @@ namespace MiniChess.Core.Data
                 MaxHp = MaxHp.Value,
                 Attack = Attack.Value,
                 AttackRange = AttackRange.Value,
-                SkillIds = SkillSlots.Where(id => id != null).ToArray(),
+                SkillIds = SkillSlots.Where(id => id != null).Concat(ExtraSkillIds).ToArray(),
             };
         }
 
@@ -76,6 +79,7 @@ namespace MiniChess.Core.Data
                 AttackRange = AttackRange,
             };
             Array.Copy(SkillSlots, clone.SkillSlots, SkillSlotCount);
+            clone.ExtraSkillIds.AddRange(ExtraSkillIds);
             return clone;
         }
     }
