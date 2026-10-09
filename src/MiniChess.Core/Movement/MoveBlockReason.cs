@@ -16,5 +16,8 @@ namespace MiniChess.Core.Movement
 
         /// <summary>이동 거리 제한 상태(볼라 등)의 한도 초과.</summary>
         DistanceLimited,
+
+        /// <summary>설치 상태라 자발적 이동 불가(박격포).</summary>
+        Installed,
     }
 }

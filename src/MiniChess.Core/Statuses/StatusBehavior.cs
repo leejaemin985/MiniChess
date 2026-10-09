@@ -31,6 +31,12 @@ namespace MiniChess.Core.Statuses
         /// <summary>정의의 Trigger 시점마다 호출된다.</summary>
         public virtual void OnTrigger(StatusContext context) { }
 
+        /// <summary>이 상태가 대상의 기본 공격을 막는지.</summary>
+        public virtual bool BlocksBasicAttack(StatusContext context)
+        {
+            return false;
+        }
+
         /// <summary>이 상태가 대상의 이동을 막는지.</summary>
         /// <param name="initiator">이동을 일으킨 유닛. 대상 자신이면 자발적 이동.</param>
         /// <param name="cells">이번 이동의 칸 수.</param>

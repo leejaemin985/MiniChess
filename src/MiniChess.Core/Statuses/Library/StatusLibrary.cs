@@ -12,6 +12,7 @@ namespace MiniChess.Core.Statuses.Library
         public const string BurnId = "BURN";
         public const string DistanceLimitId = "DISTANCE_LIMIT";
         public const string GuardId = "GUARD";
+        public const string InstalledId = "INSTALLED";
 
         // 대상 소유자의 턴 종료 단계. 걸린 그 턴은 세지 않아, 1 이면 대상의 다음 자기 턴까지 유지된다.
         private static readonly StatusTiming TargetDurationTick =
@@ -100,6 +101,25 @@ namespace MiniChess.Core.Statuses.Library
                 SourceTurnStart,
                 behavior: new GuardBehavior(maxDistance.Value),
                 removeOnSourceDeath: true);
+        }
+
+        /// <summary>
+        /// 설치: 영구 상태(해체할 때까지). 자발적 이동과 기본 공격 불가, 외부 강제 이동은 허용.
+        /// 걸릴 때 보호막(shieldId)을 받고 풀릴 때 그 보호막이 사라진다. 다시 걸어도 아무 일 없다.
+        /// </summary>
+        /// <param name="shieldId">설치 보호막 Id.</param>
+        /// <param name="shieldAmount">설치 시 받는 보호막 양.</param>
+        public static StatusDefinition Installed(string shieldId, int? shieldAmount)
+        {
+            if (shieldAmount == null)
+                return null;
+
+            return new StatusDefinition(
+                InstalledId,
+                duration: 1,
+                StatusStackPolicy.Ignore,
+                decrement: null,
+                behavior: new InstalledBehavior(shieldId, shieldAmount.Value));
         }
     }
 }

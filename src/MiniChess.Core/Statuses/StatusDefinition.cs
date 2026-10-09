@@ -10,13 +10,15 @@ namespace MiniChess.Core.Statuses
     {
         public string Id { get; }
 
-        /// <summary>지속 횟수. 걸리거나 갱신될 때 StatusEffect.Remaining 의 시작값이 된다.</summary>
+        /// <summary>지속 횟수. 걸리거나 갱신될 때 StatusEffect.Remaining 의 시작값이 된다. 영구 상태면 의미 없음.</summary>
         public int Duration { get; }
 
         public StatusStackPolicy StackPolicy { get; }
 
-        /// <summary>Remaining 이 1 줄어드는 시점.</summary>
+        /// <summary>Remaining 이 1 줄어드는 시점. null 이면 영구 상태(직접 제거하거나 대상이 죽을 때까지 유지).</summary>
         public StatusTiming Decrement { get; }
+
+        public bool IsPermanent => Decrement == null;
 
         /// <summary>Behavior.OnTrigger 가 호출되는 시점. 반복 발동이 없으면 null.</summary>
         public StatusTiming Trigger { get; }
@@ -42,7 +44,7 @@ namespace MiniChess.Core.Statuses
             Id = id;
             Duration = duration;
             StackPolicy = stackPolicy;
-            Decrement = decrement ?? throw new ArgumentNullException(nameof(decrement));
+            Decrement = decrement;
             Trigger = trigger;
             Behavior = behavior;
             RemoveOnSourceDeath = removeOnSourceDeath;

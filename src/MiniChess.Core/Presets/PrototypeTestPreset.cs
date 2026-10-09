@@ -189,6 +189,9 @@ namespace MiniChess.Core.Presets
             t.Gardener.SingleShield.Range = 2;
             t.Gardener.SingleShield.Amount = 3;
 
+            t.Mortar.Install.ApCost = 2;
+            t.Mortar.Install.ShieldAmount = 2;
+
             t.Mortar.DelayedStrike.ApCost = 4;
             t.Mortar.DelayedStrike.Range = 4;
             t.Mortar.DelayedStrike.Area.Shape = new[]

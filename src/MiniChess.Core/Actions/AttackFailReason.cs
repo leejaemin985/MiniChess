@@ -21,5 +21,8 @@ namespace MiniChess.Core.Actions
 
         /// <summary>이번 턴에 더 이상 행동할 수 없는 유닛(예: 분신 소환 직후).</summary>
         ActionsEnded,
+
+        /// <summary>상태효과가 기본 공격을 막음(설치 중인 박격포 등).</summary>
+        BlockedByStatus,
     }
 }

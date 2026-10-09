@@ -131,6 +131,13 @@ namespace MiniChess.Core.Statuses
             return MoveBlockReason.None;
         }
 
+        /// <summary>걸린 상태 중 기본 공격을 막는 것이 있는지.</summary>
+        internal static bool BlocksBasicAttack(GameState state, Unit attacker)
+        {
+            return attacker.Statuses.Any(status =>
+                status.Definition.Behavior != null && status.Definition.Behavior.BlocksBasicAttack(new StatusContext(state, status)));
+        }
+
         private static void Decrement(GameState state, StatusEffect status)
         {
             status.Remaining--;

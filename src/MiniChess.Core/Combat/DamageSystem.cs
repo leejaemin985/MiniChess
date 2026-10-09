@@ -67,6 +67,17 @@ namespace MiniChess.Core.Combat
             state.Events.Record(new UnitShieldChangedEvent(target, shield.Id, shield.Amount, target.Stats.Shield));
         }
 
+        /// <summary>해당 Id 의 보호막을 남은 양과 무관하게 제거한다(설치 해제 등). 없으면 아무것도 하지 않는다.</summary>
+        internal static void RemoveShield(GameState state, Unit target, string shieldId)
+        {
+            if (state == null) throw new ArgumentNullException(nameof(state));
+            if (target == null) throw new ArgumentNullException(nameof(target));
+
+            ShieldInstance removed = target.Stats.RemoveShield(shieldId);
+            if (removed != null)
+                state.Events.Record(new UnitShieldChangedEvent(target, shieldId, 0, target.Stats.Shield));
+        }
+
         /// <summary>회복을 적용한다. 보드 위에 살아 있는 대상만 처리한다.</summary>
         internal static int Heal(GameState state, Unit source, Unit target, int amount)
         {

@@ -29,6 +29,7 @@ namespace MiniChess.Core.Actions
             if (!Attacker.IsPlaced || !Attacker.IsAlive) return AttackFailReason.AttackerNotOnBoard;
             if (Attacker.TurnState.ActionsEnded) return AttackFailReason.ActionsEnded;
             if (Attacker.TurnState.CombatActionUsed) return AttackFailReason.AlreadyActed;
+            if (StatusSystem.BlocksBasicAttack(state, Attacker)) return AttackFailReason.BlockedByStatus;
             if (!Target.IsPlaced || !Target.IsAlive) return AttackFailReason.InvalidTarget;
             if (Target.Team == Attacker.Team) return AttackFailReason.TargetNotEnemy;
 

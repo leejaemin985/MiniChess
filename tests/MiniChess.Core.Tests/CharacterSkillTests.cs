@@ -47,7 +47,7 @@ namespace MiniChess.Core.Tests
         {
             SkillDefinition[] skills = PresetSkills();
 
-            Assert.Equal(15, skills.Length);
+            Assert.Equal(16, skills.Length);
             Assert.All(skills, s => Assert.Empty(s.GetConfigIssues()));
         }
 
@@ -70,7 +70,7 @@ namespace MiniChess.Core.Tests
             var ids = PresetSkills().Select(s => s.Id).ToHashSet();
             var slotted = PieceModules.CreateDefinitions().SelectMany(c => c.SkillSlots).Where(id => id != null).ToList();
 
-            Assert.Equal(15, slotted.Count);
+            Assert.Equal(16, slotted.Count);
             Assert.All(slotted, id => Assert.Contains(id, ids));
         }
 
@@ -945,6 +945,10 @@ namespace MiniChess.Core.Tests
 
         #region Delayed strike
 
+        /// <summary>박격포를 설치 상태로 만든다(지연 포격은 설치 상태에서만 사용 가능).</summary>
+        private static void InstallMortar(GameState state, Unit mortar) =>
+            Statuses.StatusSystem.Apply(state, StatusLibrary.Installed(MortarPiece.InstallId, 2), mortar, mortar);
+
         // 사용자 확정: 시전 시 조준, 다음 내 턴 시작에 발사
         [Fact]
         public void DelayedStrike_NoImmediateDamage_LandsOnEnemiesAtCastersNextTurnStart()
@@ -956,6 +960,7 @@ namespace MiniChess.Core.Tests
                 .Place(Team.Player2, 4, 4) // 범위 밖 (대각선)
                 .Place(Team.Player1, 2, 3) // 범위 안 아군
                 .Start();
+            InstallMortar(state, u[0]);
 
             Use(state, u[0], MortarPiece.DelayedStrikeId, 3, 3);
             Assert.Equal(10, u[1].Stats.CurrentHp);
@@ -981,6 +986,7 @@ namespace MiniChess.Core.Tests
                 .Place(Team.Player1, 0, 0, With(MortarPiece.DelayedStrikeId))
                 .Place(Team.Player2, 3, 3, TestGame.Stats(hp: 20))
                 .Start();
+            InstallMortar(state, u[0]);
 
             Use(state, u[0], MortarPiece.DelayedStrikeId, 3, 3);
             EndTurn(state);
@@ -1000,6 +1006,7 @@ namespace MiniChess.Core.Tests
                 .Place(Team.Player1, 0, 0, With(MortarPiece.DelayedStrikeId))
                 .Place(Team.Player2, 3, 3)
                 .Start();
+            InstallMortar(state, u[0]);
 
             Use(state, u[0], MortarPiece.DelayedStrikeId, 3, 3);
             EndTurn(state);
@@ -1018,6 +1025,7 @@ namespace MiniChess.Core.Tests
                 .Place(Team.Player1, 6, 0)
                 .Place(Team.Player2, 3, 3)
                 .Start();
+            InstallMortar(state, u[0]);
 
             Use(state, u[0], MortarPiece.DelayedStrikeId, 3, 3);
             EndTurn(state);
@@ -1037,11 +1045,101 @@ namespace MiniChess.Core.Tests
                 .Place(Team.Player1, 0, 0, With(MortarPiece.DelayedStrikeId))
                 .Place(Team.Player2, 6, 6)
                 .Start();
+            InstallMortar(state, u[0]);
             var condition = new Skills.Conditions.MaxActiveStrikesCondition(MortarPiece.DelayedStrikeId, 1);
 
             Assert.True(condition.IsMet(state, u[0]));
             Use(state, u[0], MortarPiece.DelayedStrikeId, 3, 3);
             Assert.False(condition.IsMet(state, u[0]));
+        }
+
+        #endregion
+
+        #region Install
+
+        private static UnitBaseStats Mortar() => With(MortarPiece.InstallId, MortarPiece.DelayedStrikeId);
+
+        // 사용자 확정: 해체 상태로 시작, 설치 중 자발적 이동/기본 공격 불가, 설치 시 보호막
+        [Fact]
+        public void Install_BlocksMoveAndBasicAttack_AndGivesShield()
+        {
+            var (state, u) = Game()
+                .Place(Team.Player1, 0, 0, Mortar())
+                .Place(Team.Player2, 1, 1)
+                .Start();
+            Assert.Null(u[0].FindStatus(StatusLibrary.InstalledId));
+            Assert.Equal(SkillFailReason.ConditionNotMet, Check(state, u[0], MortarPiece.DelayedStrikeId, 3, 3));
+
+            Use(state, u[0], MortarPiece.InstallId, 0, 0);
+            EndTurn(state);
+            EndTurn(state);
+
+            Assert.NotNull(u[0].FindStatus(StatusLibrary.InstalledId));
+            Assert.Equal(2, u[0].Stats.Shield);
+            Assert.Equal(MoveFailReason.Installed, new MoveAction(u[0], new Position(0, 1)).Validate(state));
+            Assert.Equal(AttackFailReason.BlockedByStatus, new AttackAction(u[0], u[1]).Validate(state));
+            Assert.Equal(SkillFailReason.None, Check(state, u[0], MortarPiece.DelayedStrikeId, 3, 3));
+        }
+
+        // 사용자 확정: 해체하면 설치 보호막 제거, 다시 이동/공격 가능
+        [Fact]
+        public void Uninstall_RemovesShield_AndRestoresMovement()
+        {
+            var (state, u) = Game()
+                .Place(Team.Player1, 0, 0, Mortar())
+                .Place(Team.Player2, 6, 6)
+                .Start();
+            Use(state, u[0], MortarPiece.InstallId, 0, 0);
+            EndTurn(state);
+            EndTurn(state);
+
+            Use(state, u[0], MortarPiece.InstallId, 0, 0); // 해체
+            Assert.Null(u[0].FindStatus(StatusLibrary.InstalledId));
+            Assert.Equal(0, u[0].Stats.Shield);
+
+            EndTurn(state);
+            EndTurn(state);
+            Assert.Equal(MoveFailReason.None, new MoveAction(u[0], new Position(0, 1)).Validate(state));
+        }
+
+        // 사용자 확정: 설치 → 조준 → 착탄 턴에는 다시 조준 또는 해체만 남는다
+        [Fact]
+        public void Mortar_FiringTurn_LeavesOnlyAimAgainOrUninstall()
+        {
+            var (state, u) = Game()
+                .Place(Team.Player1, 0, 0, Mortar())
+                .Place(Team.Player2, 3, 3, TestGame.Stats(hp: 20))
+                .Place(Team.Player2, 1, 1)
+                .Start();
+            Use(state, u[0], MortarPiece.InstallId, 0, 0);
+            EndTurn(state);
+            EndTurn(state);
+            Use(state, u[0], MortarPiece.DelayedStrikeId, 3, 3);
+            EndTurn(state);
+            EndTurn(state); // 착탄
+
+            Assert.Equal(14, u[1].Stats.CurrentHp);
+            Assert.Equal(SkillFailReason.None, Check(state, u[0], MortarPiece.DelayedStrikeId, 3, 3));
+            Assert.Equal(SkillFailReason.None, Check(state, u[0], MortarPiece.InstallId, 0, 0));
+            Assert.Equal(MoveFailReason.Installed, new MoveAction(u[0], new Position(0, 1)).Validate(state));
+            Assert.Equal(AttackFailReason.BlockedByStatus, new AttackAction(u[0], u[2]).Validate(state));
+        }
+
+        // 사용자 확정: 설치 중에도 외부 강제 이동(워프 교환 등)은 허용
+        [Fact]
+        public void Installed_MortarCanStillBeSwappedByAlly()
+        {
+            var (state, u) = Game()
+                .Place(Team.Player1, 0, 0, With(SeamstressPiece.WarpId))
+                .Place(Team.Player1, 1, 0, Mortar())
+                .Place(Team.Player1, 2, 0)
+                .Place(Team.Player2, 6, 6)
+                .Start();
+            InstallMortar(state, u[1]);
+
+            Warp(u[0], (1, 0), (2, 0)).Execute(state);
+
+            Assert.Equal(new Position(2, 0), u[1].Position);
         }
 
         #endregion

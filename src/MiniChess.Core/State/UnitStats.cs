@@ -66,6 +66,16 @@ namespace MiniChess.Core.State
             return instance;
         }
 
+        /// <summary>해당 Id 의 보호막을 제거한다. 제거한 보호막, 없으면 null.</summary>
+        internal ShieldInstance RemoveShield(string shieldId)
+        {
+            ShieldInstance shield = FindShield(shieldId);
+            if (shield != null)
+                _shields.Remove(shield);
+
+            return shield;
+        }
+
         /// <summary>
         /// 피해를 보호막으로 흡수한다(먼저 받은 것부터). 모두 흡수된 보호막은 제거한다.
         /// 흡수에 쓰인 보호막과 각각 흡수한 양을 반환한다.
