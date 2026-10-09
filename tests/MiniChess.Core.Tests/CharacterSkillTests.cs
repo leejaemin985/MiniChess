@@ -47,7 +47,7 @@ namespace MiniChess.Core.Tests
         {
             SkillDefinition[] skills = PresetSkills();
 
-            Assert.Equal(16, skills.Length);
+            Assert.Equal(17, skills.Length);
             Assert.All(skills, s => Assert.Empty(s.GetConfigIssues()));
         }
 
@@ -70,7 +70,7 @@ namespace MiniChess.Core.Tests
             var ids = PresetSkills().Select(s => s.Id).ToHashSet();
             var slotted = PieceModules.CreateDefinitions().SelectMany(c => c.SkillSlots).Where(id => id != null).ToList();
 
-            Assert.Equal(16, slotted.Count);
+            Assert.Equal(17, slotted.Count);
             Assert.All(slotted, id => Assert.Contains(id, ids));
         }
 
@@ -1140,6 +1140,104 @@ namespace MiniChess.Core.Tests
             Warp(u[0], (1, 0), (2, 0)).Execute(state);
 
             Assert.Equal(new Position(2, 0), u[1].Position);
+        }
+
+        #endregion
+
+        #region Obstacle
+
+        // 명세 11.3: 장애물은 이동을 막지만 공격/스킬 사거리는 막지 않는다
+        [Fact]
+        public void Obstacle_BlocksMovementAndDash_ButNotAttackRange()
+        {
+            var (state, u) = Game()
+                .Place(Team.Player1, 0, 0, With(SeamstressPiece.ObstacleId))
+                .Place(Team.Player2, 0, 3, TestGame.Stats(range: 3))
+                .Place(Team.Player2, 0, 5, With(WarriorPiece.DashId))
+                .Start();
+
+            Use(state, u[0], SeamstressPiece.ObstacleId, 0, 2);
+            EndTurn(state);
+
+            Assert.True(state.Board.GetCell(new Position(0, 2)).HasObstacle);
+            Assert.Equal(MoveFailReason.PathBlocked, new MoveAction(u[1], new Position(0, 1)).Validate(state));
+            Assert.Equal(AttackFailReason.None, new AttackAction(u[1], u[0]).Validate(state));
+
+            new MoveAction(u[1], new Position(1, 3)).Execute(state); // 돌진 경로 비우기
+            Assert.Equal(SkillFailReason.InvalidTarget, Check(state, u[2], WarriorPiece.DashId, 0, 2)); // 장애물 칸
+            Assert.Equal(SkillFailReason.None, Check(state, u[2], WarriorPiece.DashId, 0, 3));
+        }
+
+        // 사용자 확정: 양 팀 모두 기본 공격 1회로 부술 수 있고, AP 와 전투 행동을 쓴다
+        [Fact]
+        public void Obstacle_IsDestroyedByOneBasicAttack_FromEitherTeam()
+        {
+            var (state, u) = Game()
+                .Place(Team.Player1, 0, 0, With(SeamstressPiece.ObstacleId))
+                .Place(Team.Player1, 1, 1)
+                .Place(Team.Player2, 1, 3)
+                .WithRules(r => r.Ap.StartAp = 6)
+                .Start();
+            Use(state, u[0], SeamstressPiece.ObstacleId, 0, 2);
+            Assert.Equal(AttackFailReason.None, new AttackObstacleAction(u[1], new Position(0, 2)).Validate(state)); // 아군
+
+            EndTurn(state);
+            int apBefore = state.CurrentPlayer.Ap.Current;
+            AttackObstacleResult result = new AttackObstacleAction(u[2], new Position(0, 2)).Execute(state); // 적
+
+            Assert.True(result.Destroyed);
+            Assert.False(state.Board.GetCell(new Position(0, 2)).HasObstacle);
+            Assert.Equal(apBefore - 2, state.CurrentPlayer.Ap.Current);
+            Assert.Equal(AttackFailReason.AlreadyActed, new AttackAction(u[2], u[1]).Validate(state));
+        }
+
+        [Fact]
+        public void Obstacle_AttackRequiresRangeAndAnObstacle()
+        {
+            var (state, u) = Game()
+                .Place(Team.Player1, 0, 0, With(SeamstressPiece.ObstacleId))
+                .Place(Team.Player1, 6, 0)
+                .Place(Team.Player2, 6, 6)
+                .WithRules(r => r.Ap.StartAp = 6)
+                .Start();
+            Use(state, u[0], SeamstressPiece.ObstacleId, 0, 2);
+
+            Assert.Equal(AttackFailReason.OutOfRange, new AttackObstacleAction(u[1], new Position(0, 2)).Validate(state));
+            Assert.Equal(AttackFailReason.InvalidTarget, new AttackObstacleAction(u[1], new Position(5, 0)).Validate(state));
+        }
+
+        // 명세 11.3: 점령 칸에는 생성 불가. 유닛이 있는 칸에도 불가
+        [Fact]
+        public void Obstacle_CannotBePlacedOnCaptureTileOrOccupiedCell()
+        {
+            var (state, u) = Game()
+                .WithMap(".......", ".......", ".......", "...C...", ".......", ".......", ".......")
+                .Place(Team.Player1, 3, 1, With(SeamstressPiece.ObstacleId))
+                .Place(Team.Player2, 3, 2)
+                .Start();
+
+            Assert.Equal(SkillFailReason.InvalidTarget, Check(state, u[0], SeamstressPiece.ObstacleId, 3, 3)); // 점령 칸
+            Assert.Equal(SkillFailReason.InvalidTarget, Check(state, u[0], SeamstressPiece.ObstacleId, 3, 2)); // 유닛
+            Assert.Equal(SkillFailReason.None, Check(state, u[0], SeamstressPiece.ObstacleId, 2, 2));
+        }
+
+        [Fact]
+        public void Obstacle_AllowsOneActive_AndExpiresAfterLifetime()
+        {
+            var (state, u) = Game()
+                .Place(Team.Player1, 0, 0, With(SeamstressPiece.ObstacleId))
+                .Place(Team.Player2, 6, 6)
+                .Start();
+            Use(state, u[0], SeamstressPiece.ObstacleId, 0, 2);
+            EndTurn(state); // P1 종료: 설치 턴은 세지 않음
+            EndTurn(state);
+
+            Assert.Equal(SkillFailReason.ConditionNotMet, Check(state, u[0], SeamstressPiece.ObstacleId, 2, 0));
+
+            EndTurn(state); // P1 종료: 수명 2 → 1
+            EndTurn(state);
+            EndTurn(state); // P1 종료: 수명 0, 제거
+            Assert.False(state.Board.GetCell(new Position(0, 2)).HasObstacle);
         }
 
         #endregion

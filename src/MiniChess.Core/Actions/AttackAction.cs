@@ -24,12 +24,9 @@ namespace MiniChess.Core.Actions
 
         public AttackFailReason Validate(GameState state)
         {
-            if (state.Phase != GamePhase.Battle) return AttackFailReason.NotBattlePhase;
-            if (Attacker.Team != state.CurrentTeam) return AttackFailReason.NotYourTurn;
-            if (!Attacker.IsPlaced || !Attacker.IsAlive) return AttackFailReason.AttackerNotOnBoard;
-            if (Attacker.TurnState.ActionsEnded) return AttackFailReason.ActionsEnded;
-            if (Attacker.TurnState.CombatActionUsed) return AttackFailReason.AlreadyActed;
-            if (StatusSystem.BlocksBasicAttack(state, Attacker)) return AttackFailReason.BlockedByStatus;
+            AttackFailReason attackerReason = ValidateAttacker(state, Attacker);
+            if (attackerReason != AttackFailReason.None) return attackerReason;
+
             if (!Target.IsPlaced || !Target.IsAlive) return AttackFailReason.InvalidTarget;
             if (Target.Team == Attacker.Team) return AttackFailReason.TargetNotEnemy;
 
@@ -73,6 +70,19 @@ namespace MiniChess.Core.Actions
 
                 StatusSystem.Apply(state, status, Target, Attacker);
             }
+        }
+
+        /// <summary>대상과 무관하게 attacker 가 지금 기본 공격을 할 수 있는지(AP 제외). 장애물 공격과 공용.</summary>
+        internal static AttackFailReason ValidateAttacker(GameState state, Unit attacker)
+        {
+            if (state.Phase != GamePhase.Battle) return AttackFailReason.NotBattlePhase;
+            if (attacker.Team != state.CurrentTeam) return AttackFailReason.NotYourTurn;
+            if (!attacker.IsPlaced || !attacker.IsAlive) return AttackFailReason.AttackerNotOnBoard;
+            if (attacker.TurnState.ActionsEnded) return AttackFailReason.ActionsEnded;
+            if (attacker.TurnState.CombatActionUsed) return AttackFailReason.AlreadyActed;
+            if (StatusSystem.BlocksBasicAttack(state, attacker)) return AttackFailReason.BlockedByStatus;
+
+            return AttackFailReason.None;
         }
 
         /// <summary>

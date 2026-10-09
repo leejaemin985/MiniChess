@@ -212,6 +212,12 @@ namespace MiniChess.Core.Presets
             t.Seamstress.Warp.ApCost = 3;
             t.Seamstress.Warp.Range = 3;
 
+            t.Seamstress.Obstacle.ApCost = 3;
+            t.Seamstress.Obstacle.Range = 3;
+            t.Seamstress.Obstacle.Hits = 1;
+            t.Seamstress.Obstacle.Lifetime = 2;
+            t.Seamstress.Obstacle.MaxActive = 1;
+
             t.Archer.Bola.ApCost = 3;
             t.Archer.Bola.Range = 3;
             t.Archer.Bola.Damage = 1;

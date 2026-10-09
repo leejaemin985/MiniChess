@@ -13,7 +13,7 @@ namespace MiniChess.Core.Effects
         OutOfBounds,
         Wall,
 
-        /// <summary>점령 칸에 설치할 수 없는 레이어(덫).</summary>
+        /// <summary>점령 칸에 설치할 수 없는 레이어(덫, 장애물).</summary>
         CaptureTileRestricted,
     }
 
@@ -21,7 +21,7 @@ namespace MiniChess.Core.Effects
     /// 칸 효과의 설치/제거/턴 단계 처리.
     ///   - 레이어마다 칸당 1개. 같은 레이어에 새로 설치하면 기존 효과를 덮어쓴다(장판 위 장판 → 교체).
     ///   - 다른 레이어는 공존한다(장판 + 덫).
-    ///   - 점령 칸에는 덫 설치 불가, 장판은 허용(명세 3.5).
+    ///   - 점령 칸에는 덫/장애물 설치 불가, 장판은 허용(명세 3.5, 11.3).
     /// </summary>
     public static class CellEffectSystem
     {
@@ -31,6 +31,7 @@ namespace MiniChess.Core.Effects
             {
                 case CellEffectLayer.Trap: return false;
                 case CellEffectLayer.AreaEffect: return true;
+                case CellEffectLayer.Obstacle: return false;
                 default: throw new ArgumentOutOfRangeException(nameof(layer), layer, null);
             }
         }

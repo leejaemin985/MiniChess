@@ -24,6 +24,9 @@ namespace MiniChess.Core.State
         public bool IsWall => Terrain == TerrainType.Wall;
         public bool IsEmpty => Occupant == null;
 
+        /// <summary>장애물이 있어 유닛이 들어갈 수 없는 칸인지.</summary>
+        public bool HasObstacle => HasEffect(CellEffectLayer.Obstacle);
+
         public BoardCell(Position position, TerrainType terrain, bool isCaptureTile)
         {
             Position = position;

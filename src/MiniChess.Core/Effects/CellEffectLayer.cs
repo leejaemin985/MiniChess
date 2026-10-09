@@ -8,5 +8,8 @@ namespace MiniChess.Core.Effects
     {
         Trap = 0,
         AreaEffect = 1,
+
+        /// <summary>이동을 막는 설치물(재봉사 장애물). 유닛이 들어갈 수 없으므로 진입 발동은 없다.</summary>
+        Obstacle = 2,
     }
 }

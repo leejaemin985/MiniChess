@@ -123,14 +123,14 @@ namespace MiniChess.Core.State
 
         #region Placement
 
-        /// <summary>해당 칸에 유닛이 놓일 수 있는지(칸 조건만). 스폰/이동/순간이동 등 공통으로 사용.</summary>
+        /// <summary>해당 칸에 유닛이 놓일 수 있는지(벽/유닛/장애물이 없는지). 스폰/이동/순간이동 등 공통으로 사용.</summary>
         public bool CanPlace(Position position)
         {
             if (!IsInBounds(position))
                 return false;
 
             BoardCell cell = GetCell(position);
-            return !cell.IsWall && cell.IsEmpty;
+            return !cell.IsWall && cell.IsEmpty && !cell.HasObstacle;
         }
 
         /// <summary>보드 밖에 있는 유닛을 해당 칸에 올릴 수 있는지.</summary>
