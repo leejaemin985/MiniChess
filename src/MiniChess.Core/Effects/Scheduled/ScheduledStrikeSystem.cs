@@ -1,0 +1,71 @@
+using System.Linq;
+using MiniChess.Core.Combat;
+using MiniChess.Core.Common;
+using MiniChess.Core.Events;
+using MiniChess.Core.State;
+using MiniChess.Core.Turns;
+
+namespace MiniChess.Core.Effects.Scheduled
+{
+    /// <summary>예약 포격의 등록/발사/취소.</summary>
+    public static class ScheduledStrikeSystem
+    {
+        internal static void Schedule(GameState state, ScheduledStrike strike)
+        {
+            state.AddScheduledStrike(strike);
+            state.Events.Record(new StrikeScheduledEvent(strike));
+        }
+
+        /// <summary>
+        /// 예약 효과 단계에서 현재 팀 시전자의 예약을 발사한다(조준한 턴 제외).
+        /// 발사: 범위 안 적에게 장판 피해 → 시전자의 이번 턴 행동 종료 → 예약 제거.
+        /// </summary>
+        internal static void RunStep(TurnContext context)
+        {
+            if (context.Step != TurnStep.StartScheduledEffects)
+                return;
+
+            GameState state = context.State;
+            var due = state.ScheduledStrikes
+                .Where(s => s.Source.Team == context.ActiveTeam && s.ScheduledTurnNumber != state.TurnNumber)
+                .ToList();
+
+            foreach (ScheduledStrike strike in due)
+            {
+                if (state.IsGameOver)
+                    return;
+
+                Fire(state, strike);
+            }
+        }
+
+        /// <summary>시전자가 사망하면 그 시전자의 예약을 모두 취소한다.</summary>
+        internal static void CancelBySource(GameState state, Unit source)
+        {
+            foreach (ScheduledStrike strike in state.ScheduledStrikes.Where(s => s.Source == source).ToList())
+            {
+                state.RemoveScheduledStrike(strike);
+                state.Events.Record(new StrikeCancelledEvent(strike));
+            }
+        }
+
+        private static void Fire(GameState state, ScheduledStrike strike)
+        {
+            state.RemoveScheduledStrike(strike);
+            state.Events.Record(new StrikeLandedEvent(strike));
+
+            // 발사도 시전자의 행동이다: 이 턴에는 이동/행동 불가(사용자 확정).
+            strike.Source.TurnState.EndActions();
+
+            foreach (Position position in strike.Cells)
+            {
+                if (state.IsGameOver)
+                    return;
+
+                Unit occupant = state.Board.GetCell(position).Occupant;
+                if (occupant != null && occupant.IsAlive && occupant.Team != strike.Source.Team)
+                    DamageSystem.Apply(state, new DamageRequest(strike.Source, occupant, strike.Damage, DamageType.Area));
+            }
+        }
+    }
+}

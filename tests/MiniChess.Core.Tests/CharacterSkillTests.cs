@@ -47,7 +47,7 @@ namespace MiniChess.Core.Tests
         {
             SkillDefinition[] skills = PresetSkills();
 
-            Assert.Equal(14, skills.Length);
+            Assert.Equal(15, skills.Length);
             Assert.All(skills, s => Assert.Empty(s.GetConfigIssues()));
         }
 
@@ -70,7 +70,7 @@ namespace MiniChess.Core.Tests
             var ids = PresetSkills().Select(s => s.Id).ToHashSet();
             var slotted = PieceModules.CreateDefinitions().SelectMany(c => c.SkillSlots).Where(id => id != null).ToList();
 
-            Assert.Equal(14, slotted.Count);
+            Assert.Equal(15, slotted.Count);
             Assert.All(slotted, id => Assert.Contains(id, ids));
         }
 
@@ -939,6 +939,110 @@ namespace MiniChess.Core.Tests
             Use(state, u[0], ScythePiece.SlashId, 5, 3); // 오른쪽 → 세로 (5,4)~(5,1)
 
             Assert.Equal(7, u[1].Stats.CurrentHp);
+        }
+
+        #endregion
+
+        #region Delayed strike
+
+        // 사용자 확정: 시전 시 조준, 다음 내 턴 시작에 발사
+        [Fact]
+        public void DelayedStrike_NoImmediateDamage_LandsOnEnemiesAtCastersNextTurnStart()
+        {
+            var (state, u) = Game()
+                .Place(Team.Player1, 0, 0, With(MortarPiece.DelayedStrikeId))
+                .Place(Team.Player2, 3, 3)
+                .Place(Team.Player2, 4, 4) // 범위 안 (모서리)
+                .Place(Team.Player1, 2, 2) // 범위 안 아군
+                .Start();
+
+            Use(state, u[0], MortarPiece.DelayedStrikeId, 3, 3);
+            Assert.Equal(10, u[1].Stats.CurrentHp);
+            Assert.Single(state.ScheduledStrikes);
+
+            EndTurn(state); // P2 턴: 아직 착탄 안 함
+            Assert.Equal(10, u[1].Stats.CurrentHp);
+
+            EndTurn(state); // P1 턴 시작: 착탄
+            Assert.Equal(4, u[1].Stats.CurrentHp);
+            Assert.Equal(4, u[2].Stats.CurrentHp);
+            Assert.Equal(10, u[3].Stats.CurrentHp);
+            Assert.Empty(state.ScheduledStrikes);
+            Assert.Contains(state.Events.Since(0), e => e is UnitDamagedEvent d && d.Target == u[1] && d.Type == DamageType.Area);
+        }
+
+        // 사용자 확정: 발사도 행동이라 발사한 턴에는 이동/행동 불가
+        [Fact]
+        public void DelayedStrike_FiringTurn_MortarCannotMoveOrAct()
+        {
+            var (state, u) = Game()
+                .Place(Team.Player1, 0, 0, With(MortarPiece.DelayedStrikeId))
+                .Place(Team.Player2, 1, 1, TestGame.Stats(hp: 20))
+                .Start();
+
+            Use(state, u[0], MortarPiece.DelayedStrikeId, 3, 3);
+            EndTurn(state);
+            EndTurn(state);
+
+            Assert.True(u[0].TurnState.ActionsEnded);
+            Assert.Equal(MoveFailReason.ActionsEnded, new MoveAction(u[0], new Position(0, 1)).Validate(state));
+            Assert.Equal(AttackFailReason.ActionsEnded, new AttackAction(u[0], u[1]).Validate(state));
+
+            EndTurn(state);
+            EndTurn(state); // 그다음 내 턴: 정상
+            Assert.Equal(MoveFailReason.None, new MoveAction(u[0], new Position(0, 1)).Validate(state));
+        }
+
+        // 사용자 확정: 착탄 위치는 조준한 칸에 고정, 예상하고 움직이면 피할 수 있다
+        [Fact]
+        public void DelayedStrike_EnemyMovingOutOfAimedArea_Dodges()
+        {
+            var (state, u) = Game()
+                .Place(Team.Player1, 0, 0, With(MortarPiece.DelayedStrikeId))
+                .Place(Team.Player2, 3, 3)
+                .Start();
+
+            Use(state, u[0], MortarPiece.DelayedStrikeId, 3, 3);
+            EndTurn(state);
+            new MoveAction(u[1], new Position(3, 6)).Execute(state);
+            EndTurn(state);
+
+            Assert.Equal(10, u[1].Stats.CurrentHp);
+        }
+
+        // 사용자 확정: 착탄 전에 시전자가 죽으면 예약 취소
+        [Fact]
+        public void DelayedStrike_IsCancelledWhenCasterDies()
+        {
+            var (state, u) = Game()
+                .Place(Team.Player1, 0, 0, With(MortarPiece.DelayedStrikeId))
+                .Place(Team.Player1, 6, 0)
+                .Place(Team.Player2, 3, 3)
+                .Start();
+
+            Use(state, u[0], MortarPiece.DelayedStrikeId, 3, 3);
+            EndTurn(state);
+            DamageSystem.Apply(state, new DamageRequest(u[2], u[0], 99, DamageType.Direct));
+
+            Assert.Empty(state.ScheduledStrikes);
+            Assert.Contains(state.Events.Since(0), e => e is StrikeCancelledEvent);
+
+            EndTurn(state);
+            Assert.Equal(10, u[2].Stats.CurrentHp);
+        }
+
+        [Fact]
+        public void DelayedStrike_AllowsOneActiveStrikePerCaster()
+        {
+            var (state, u) = Game()
+                .Place(Team.Player1, 0, 0, With(MortarPiece.DelayedStrikeId))
+                .Place(Team.Player2, 6, 6)
+                .Start();
+            var condition = new Skills.Conditions.MaxActiveStrikesCondition(MortarPiece.DelayedStrikeId, 1);
+
+            Assert.True(condition.IsMet(state, u[0]));
+            Use(state, u[0], MortarPiece.DelayedStrikeId, 3, 3);
+            Assert.False(condition.IsMet(state, u[0]));
         }
 
         #endregion

@@ -4,6 +4,7 @@ using System.Linq;
 using MiniChess.Core.Combat;
 using MiniChess.Core.Common;
 using MiniChess.Core.Data;
+using MiniChess.Core.Effects.Scheduled;
 using MiniChess.Core.Events;
 using MiniChess.Core.Skills;
 
@@ -14,6 +15,7 @@ namespace MiniChess.Core.State
     {
         private readonly Dictionary<Team, PlayerState> _players;
         private readonly List<IDamageInterceptor> _damageInterceptors = new List<IDamageInterceptor>();
+        private readonly List<ScheduledStrike> _scheduledStrikes = new List<ScheduledStrike>();
         private int _nextUnitId = 1;
 
         public GameRuleData Rules { get; }
@@ -27,6 +29,9 @@ namespace MiniChess.Core.State
 
         /// <summary>피해 적용 전에 끼어드는 규칙들(호위, 보호막 등). DamageSystem 이 Order 순으로 사용한다.</summary>
         public IReadOnlyList<IDamageInterceptor> DamageInterceptors => _damageInterceptors;
+
+        /// <summary>조준되어 착탄을 기다리는 예약 포격(조준 순). 변경은 ScheduledStrikeSystem 을 통해서만 한다.</summary>
+        public IReadOnlyList<ScheduledStrike> ScheduledStrikes => _scheduledStrikes;
 
         /// <summary>점령 목표 상태.</summary>
         public CaptureState Capture { get; }
@@ -93,6 +98,18 @@ namespace MiniChess.Core.State
             if (interceptor == null) throw new ArgumentNullException(nameof(interceptor));
 
             _damageInterceptors.Add(interceptor);
+        }
+
+        internal void AddScheduledStrike(ScheduledStrike strike)
+        {
+            if (strike == null) throw new ArgumentNullException(nameof(strike));
+
+            _scheduledStrikes.Add(strike);
+        }
+
+        internal bool RemoveScheduledStrike(ScheduledStrike strike)
+        {
+            return _scheduledStrikes.Remove(strike);
         }
 
         internal bool RemoveDamageInterceptor(IDamageInterceptor interceptor)

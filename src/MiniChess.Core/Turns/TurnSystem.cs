@@ -3,6 +3,7 @@ using MiniChess.Core.Capture;
 using MiniChess.Core.Common;
 using MiniChess.Core.Data;
 using MiniChess.Core.Effects;
+using MiniChess.Core.Effects.Scheduled;
 using MiniChess.Core.Events;
 using MiniChess.Core.State;
 using MiniChess.Core.Statuses;
@@ -11,7 +12,7 @@ namespace MiniChess.Core.Turns
 {
     /// <summary>
     /// Battle 단계의 턴 진행(시작/종료/교대)을 담당한다.
-    /// 각 TurnStep 을 순서대로 처리하며, 단계마다 상태효과 → 칸 효과 순으로 훅을 실행한다.
+    /// 각 TurnStep 을 순서대로 처리하며, 단계마다 상태효과 → 칸 효과 → 예약 포격 순으로 훅을 실행한다.
     /// 처리 중 경기가 끝나면 남은 단계와 다음 턴 시작을 진행하지 않는다.
     /// </summary>
     public static class TurnSystem
@@ -110,6 +111,10 @@ namespace MiniChess.Core.Turns
                 return;
 
             CellEffectSystem.RunStep(context);
+            if (state.IsGameOver)
+                return;
+
+            ScheduledStrikeSystem.RunStep(context);
         }
 
         private static void RecoverAp(ApPool ap, ApRuleData rule)

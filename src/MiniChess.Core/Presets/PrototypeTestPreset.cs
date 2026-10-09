@@ -189,6 +189,17 @@ namespace MiniChess.Core.Presets
             t.Gardener.SingleShield.Range = 2;
             t.Gardener.SingleShield.Amount = 3;
 
+            t.Mortar.DelayedStrike.ApCost = 4;
+            t.Mortar.DelayedStrike.Range = 4;
+            t.Mortar.DelayedStrike.Area.Shape = new[]
+            {
+                "###",
+                "#@#",
+                "###",
+            };
+            t.Mortar.DelayedStrike.Damage = 6;
+            t.Mortar.DelayedStrike.MaxActive = 1;
+
             t.Scythe.Slash.ApCost = 3;
             t.Scythe.Slash.Range = 2;
             t.Scythe.Slash.Area.Shape = new[] { "#@##" };

@@ -1,6 +1,7 @@
 using MiniChess.Core.Capture;
 using MiniChess.Core.Common;
 using MiniChess.Core.Data;
+using MiniChess.Core.Effects.Scheduled;
 using MiniChess.Core.Events;
 using MiniChess.Core.State;
 using MiniChess.Core.Statuses;
@@ -29,6 +30,7 @@ namespace MiniChess.Core.Combat
                 state.Events.Record(new UnitDiedEvent(unit, position));
                 StatusSystem.RemoveAll(state, unit, StatusRemoveReason.TargetDied);
                 StatusSystem.RemoveLinkedTo(state, unit);
+                ScheduledStrikeSystem.CancelBySource(state, unit);
                 CaptureSystem.OnOccupancyChanged(state);
             }
 
