@@ -189,6 +189,9 @@ namespace MiniChess.Core.Presets
             t.Gardener.SingleShield.Range = 2;
             t.Gardener.SingleShield.Amount = 3;
 
+            t.Seamstress.Warp.ApCost = 3;
+            t.Seamstress.Warp.Range = 3;
+
             t.Archer.Bola.ApCost = 3;
             t.Archer.Bola.Range = 3;
             t.Archer.Bola.Damage = 1;

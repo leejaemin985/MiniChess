@@ -47,7 +47,7 @@ namespace MiniChess.Core.Tests
         {
             SkillDefinition[] skills = PresetSkills();
 
-            Assert.Equal(12, skills.Length);
+            Assert.Equal(13, skills.Length);
             Assert.All(skills, s => Assert.Empty(s.GetConfigIssues()));
         }
 
@@ -70,7 +70,7 @@ namespace MiniChess.Core.Tests
             var ids = PresetSkills().Select(s => s.Id).ToHashSet();
             var slotted = PieceModules.CreateDefinitions().SelectMany(c => c.SkillSlots).Where(id => id != null).ToList();
 
-            Assert.Equal(12, slotted.Count);
+            Assert.Equal(13, slotted.Count);
             Assert.All(slotted, id => Assert.Contains(id, ids));
         }
 
@@ -769,6 +769,135 @@ namespace MiniChess.Core.Tests
             Assert.Equal(10, u[1].Stats.CurrentHp);
             Assert.Equal(7, u[0].Stats.CurrentHp);
             Assert.Equal(10, u[2].Stats.CurrentHp);
+        }
+
+        #endregion
+
+        #region Warp
+
+        private static UseSkillAction Warp(Unit caster, params (int X, int Y)[] targets) =>
+            new UseSkillAction(caster, SeamstressPiece.WarpId, targets.Select(t => new Position(t.X, t.Y)).ToList());
+
+        [Fact]
+        public void Warp_SwapsTwoAlliesInRange()
+        {
+            var (state, u) = Game()
+                .Place(Team.Player1, 0, 0, With(SeamstressPiece.WarpId))
+                .Place(Team.Player1, 1, 1)
+                .Place(Team.Player1, 3, 0)
+                .Place(Team.Player2, 6, 6)
+                .Start();
+
+            SkillResult result = Warp(u[0], (1, 1), (3, 0)).Execute(state);
+
+            Assert.Equal(new Position(3, 0), u[1].Position);
+            Assert.Equal(new Position(1, 1), u[2].Position);
+            Assert.Equal(new Position(0, 0), u[0].Position);
+            Assert.Equal(2, result.Events.OfType<UnitMovedEvent>().Count(e => e.Kind == MoveKind.Swap));
+        }
+
+        [Fact]
+        public void Warp_CanSwapCasterItself()
+        {
+            var (state, u) = Game()
+                .Place(Team.Player1, 0, 0, With(SeamstressPiece.WarpId))
+                .Place(Team.Player1, 2, 2)
+                .Place(Team.Player2, 6, 6)
+                .Start();
+
+            Warp(u[0], (0, 0), (2, 2)).Execute(state);
+
+            Assert.Equal(new Position(2, 2), u[0].Position);
+            Assert.Equal(new Position(0, 0), u[1].Position);
+        }
+
+        [Fact]
+        public void Warp_RejectsEnemyOutOfRangeDuplicateOrWrongCount()
+        {
+            var (state, u) = Game()
+                .Place(Team.Player1, 0, 0, With(SeamstressPiece.WarpId))
+                .Place(Team.Player1, 1, 0)
+                .Place(Team.Player1, 4, 0)
+                .Place(Team.Player2, 2, 0)
+                .Start();
+
+            Assert.Equal(SkillFailReason.InvalidTarget, Warp(u[0], (1, 0), (2, 0)).Validate(state)); // 적
+            Assert.Equal(SkillFailReason.InvalidTarget, Warp(u[0], (1, 0), (4, 0)).Validate(state)); // 사거리 밖
+            Assert.Equal(SkillFailReason.InvalidTarget, Warp(u[0], (1, 0), (1, 0)).Validate(state)); // 같은 유닛
+            Assert.Equal(SkillFailReason.InvalidTarget, Warp(u[0], (1, 0)).Validate(state));         // 하나만
+            Assert.Equal(SkillFailReason.None, Warp(u[0], (1, 0), (0, 0)).Validate(state));
+        }
+
+        [Fact]
+        public void Warp_StepwiseCandidates_ExcludeAlreadyChosen()
+        {
+            var (state, u) = Game()
+                .Place(Team.Player1, 0, 0, With(SeamstressPiece.WarpId))
+                .Place(Team.Player1, 1, 0)
+                .Place(Team.Player2, 6, 6)
+                .Start();
+
+            var first = SkillQueries.GetValidTargets(state, u[0], SeamstressPiece.WarpId);
+            var second = SkillQueries.GetValidTargets(state, u[0], SeamstressPiece.WarpId, new[] { new Position(1, 0) });
+            var done = SkillQueries.GetValidTargets(state, u[0], SeamstressPiece.WarpId, new[] { new Position(1, 0), new Position(0, 0) });
+
+            Assert.Equal(new[] { new Position(0, 0), new Position(1, 0) }.ToHashSet(), first.ToHashSet());
+            Assert.Equal(new[] { new Position(0, 0) }, second);
+            Assert.Empty(done);
+        }
+
+        // 명세 11.2: 이미 공격한 아군도 옮길 수 있고(이동 잠금 예외), 전투 행동은 회복되지 않는다
+        [Fact]
+        public void Warp_MovesAllyThatAlreadyAttacked_WithoutRestoringItsCombatAction()
+        {
+            var (state, u) = Game()
+                .Place(Team.Player1, 0, 0, With(SeamstressPiece.WarpId))
+                .Place(Team.Player1, 1, 1)
+                .Place(Team.Player2, 2, 2)
+                .WithRules(r => r.Ap.StartAp = 6)
+                .Start();
+            new AttackAction(u[1], u[2]).Execute(state);
+
+            Warp(u[0], (1, 1), (0, 0)).Execute(state);
+
+            Assert.Equal(new Position(0, 0), u[1].Position);
+            Assert.Equal(AttackFailReason.AlreadyActed, new AttackAction(u[1], u[2]).Validate(state));
+        }
+
+        [Fact]
+        public void Warp_TriggersCellEffectsAtBothDestinations()
+        {
+            var (state, u) = Game()
+                .Place(Team.Player1, 0, 0, With(SeamstressPiece.WarpId))
+                .Place(Team.Player1, 2, 0)
+                .Place(Team.Player2, 6, 6)
+                .Start();
+            var atCaster = new TestCellEffect();
+            var atAlly = new TestCellEffect();
+            CellEffectSystem.Place(state, new Position(0, 0), atCaster);
+            CellEffectSystem.Place(state, new Position(2, 0), atAlly);
+
+            Warp(u[0], (0, 0), (2, 0)).Execute(state);
+
+            Assert.Equal((1, 1), (atCaster.EnterCount, atCaster.StopCount));
+            Assert.Equal((1, 1), (atAlly.EnterCount, atAlly.StopCount));
+        }
+
+        [Fact]
+        public void Warp_RootedCasterCannotSwapItself_ButRootedAllyCanBeMoved()
+        {
+            var (state, u) = Game()
+                .Place(Team.Player1, 0, 0, With(SeamstressPiece.WarpId))
+                .Place(Team.Player1, 1, 0)
+                .Place(Team.Player1, 2, 0)
+                .Place(Team.Player2, 6, 6)
+                .Start();
+            Statuses.StatusDefinition root = StatusLibrary.Root(targetTurns: 1, blocksExternalMoves: false);
+            Statuses.StatusSystem.Apply(state, root, u[0], u[3]);
+            Statuses.StatusSystem.Apply(state, root, u[1], u[3]);
+
+            Assert.Equal(SkillFailReason.InvalidTarget, Warp(u[0], (0, 0), (2, 0)).Validate(state));
+            Assert.Equal(SkillFailReason.None, Warp(u[0], (1, 0), (2, 0)).Validate(state));
         }
 
         #endregion
