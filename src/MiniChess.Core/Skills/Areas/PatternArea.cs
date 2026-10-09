@@ -17,7 +17,8 @@ namespace MiniChess.Core.Skills.Areas
 
     /// <summary>
     /// 모양(AreaShape)과 기준점으로 정하는 범위. 보드 밖 칸은 제외하고, 벽 칸은 포함한다(효과가 각자 판단).
-    /// Rotate 면 시전자 → 선택 칸 방향(상하좌우)으로 모양을 회전한다. 시전자 기준에서만 쓴다.
+    /// Rotate 면 기준점과 무관하게 시전자 → 선택 칸 방향(상하좌우)으로 모양을 회전한다.
+    /// 방향이 직선이 아니면(대각선, 같은 칸) 범위가 비므로, 지정은 직선 칸으로 제한해야 한다.
     /// </summary>
     public class PatternArea : SkillArea
     {
@@ -32,9 +33,6 @@ namespace MiniChess.Core.Skills.Areas
 
         public PatternArea(AreaShape shape, AreaAnchor anchor, bool rotate = false)
         {
-            if (rotate && anchor != AreaAnchor.Caster)
-                throw new ArgumentException("회전은 시전자 기준 범위에서만 쓸 수 있음", nameof(rotate));
-
             Shape = shape;
             Anchor = anchor;
             Rotate = rotate;
@@ -51,7 +49,7 @@ namespace MiniChess.Core.Skills.Areas
             Position origin = Anchor == AreaAnchor.Caster ? caster.Position.Value : target;
 
             int facingX = 0, facingY = 1;
-            if (Rotate && !TryGetFacing(origin, target, out facingX, out facingY))
+            if (Rotate && !TryGetFacing(caster.Position.Value, target, out facingX, out facingY))
                 return cells;
 
             foreach ((int dx, int dy) in Shape.GetOffsets(facingX, facingY))

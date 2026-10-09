@@ -189,6 +189,12 @@ namespace MiniChess.Core.Presets
             t.Gardener.SingleShield.Range = 2;
             t.Gardener.SingleShield.Amount = 3;
 
+            t.Scythe.Slash.ApCost = 3;
+            t.Scythe.Slash.Range = 2;
+            t.Scythe.Slash.Area.Shape = new[] { "#@##" };
+            t.Scythe.Slash.Area.Rotate = true;
+            t.Scythe.Slash.Damage = 3;
+
             t.Seamstress.Warp.ApCost = 3;
             t.Seamstress.Warp.Range = 3;
 

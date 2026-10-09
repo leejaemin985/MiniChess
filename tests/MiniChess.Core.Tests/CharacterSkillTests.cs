@@ -47,7 +47,7 @@ namespace MiniChess.Core.Tests
         {
             SkillDefinition[] skills = PresetSkills();
 
-            Assert.Equal(13, skills.Length);
+            Assert.Equal(14, skills.Length);
             Assert.All(skills, s => Assert.Empty(s.GetConfigIssues()));
         }
 
@@ -70,7 +70,7 @@ namespace MiniChess.Core.Tests
             var ids = PresetSkills().Select(s => s.Id).ToHashSet();
             var slotted = PieceModules.CreateDefinitions().SelectMany(c => c.SkillSlots).Where(id => id != null).ToList();
 
-            Assert.Equal(13, slotted.Count);
+            Assert.Equal(14, slotted.Count);
             Assert.All(slotted, id => Assert.Contains(id, ids));
         }
 
@@ -898,6 +898,47 @@ namespace MiniChess.Core.Tests
 
             Assert.Equal(SkillFailReason.InvalidTarget, Warp(u[0], (0, 0), (2, 0)).Validate(state));
             Assert.Equal(SkillFailReason.None, Warp(u[0], (1, 0), (2, 0)).Validate(state));
+        }
+
+        #endregion
+
+        #region Slash
+
+        // 사용자 확정: 선택 칸 기준 가로 4칸, 시전자 → 선택 칸 방향으로 회전, 범위 안 적 전원, 벽에 막히지 않음
+        [Fact]
+        public void Slash_HitsEveryEnemyInHorizontal4CellsAtSelectedCell_ThroughWalls()
+        {
+            var (state, u) = Game()
+                .WithMap(".......", ".......", ".......", ".......", ".......", "...#...", ".......")
+                .Place(Team.Player1, 3, 0, With(ScythePiece.SlashId))
+                .Place(Team.Player2, 2, 2) // 범위 안
+                .Place(Team.Player2, 5, 2) // 범위 안 (끝 칸)
+                .Place(Team.Player2, 6, 2) // 범위 밖
+                .Place(Team.Player1, 4, 2) // 범위 안 아군
+                .Start();
+
+            SkillResult result = Use(state, u[0], ScythePiece.SlashId, 3, 2);
+
+            Assert.Equal(
+                new[] { new Position(2, 2), new Position(3, 2), new Position(4, 2), new Position(5, 2) }.ToHashSet(),
+                result.AffectedCells.ToHashSet());
+            Assert.Equal(new[] { 7, 7, 10, 10 }, u.Skip(1).Select(unit => unit.Stats.CurrentHp));
+        }
+
+        [Fact]
+        public void Slash_RotatesWithDirection_AndAllowsOnlyStraightCellsInRange()
+        {
+            var (state, u) = Game()
+                .Place(Team.Player1, 3, 3, With(ScythePiece.SlashId))
+                .Place(Team.Player2, 5, 1)
+                .Start();
+
+            Assert.Equal(SkillFailReason.InvalidTarget, Check(state, u[0], ScythePiece.SlashId, 4, 4)); // 대각선
+            Assert.Equal(SkillFailReason.InvalidTarget, Check(state, u[0], ScythePiece.SlashId, 6, 3)); // 사거리 초과
+
+            Use(state, u[0], ScythePiece.SlashId, 5, 3); // 오른쪽 → 세로 (5,4)~(5,1)
+
+            Assert.Equal(7, u[1].Stats.CurrentHp);
         }
 
         #endregion

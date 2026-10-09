@@ -34,7 +34,11 @@ namespace MiniChess.Core.Characters.Shared
         public static SkillTargeting AreaTargeting(AreaTuning area, int? range, CellRequirement requirement, bool includeCasterCell = false)
         {
             if (area.Anchor == AreaAnchor.Target)
-                return new CellTargeting(range, requirement, includeCasterCell: includeCasterCell);
+            {
+                // 회전 범위는 방향이 정해지는 직선 칸만 지정할 수 있다.
+                RangeShape shape = area.Rotate ? RangeShape.Orthogonal : RangeShape.Square;
+                return new CellTargeting(range, requirement, shape, includeCasterCell: includeCasterCell && !area.Rotate);
+            }
 
             return area.Rotate ? new DirectionTargeting() : (SkillTargeting)new SelfTargeting();
         }

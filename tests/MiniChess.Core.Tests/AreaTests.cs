@@ -100,10 +100,27 @@ namespace MiniChess.Core.Tests
             Assert.Equal(Cells((expected[0], expected[1]), (expected[2], expected[3])), cells.ToHashSet());
         }
 
-        [Fact]
-        public void Rotate_WithTargetAnchor_Throws()
+        [Theory]
+        [InlineData(3, 5, new[] { 2, 5, 3, 5, 4, 5, 5, 5 })]   // 위: 가로로 놓임
+        [InlineData(5, 3, new[] { 5, 4, 5, 3, 5, 2, 5, 1 })]   // 오른쪽: 세로로 회전
+        public void TargetAnchor_Rotate_TurnsShapeByCasterToTargetDirection(int targetX, int targetY, int[] expected)
         {
-            Assert.Throws<ArgumentException>(() => new PatternArea(AreaShape.SingleCell, AreaAnchor.Target, rotate: true));
+            var (state, caster) = Setup();
+            var area = new PatternArea(AreaShape.Parse(new[] { "#@##" }), AreaAnchor.Target, rotate: true);
+
+            IReadOnlyList<Position> cells = area.GetCells(state, caster, new Position(targetX, targetY));
+
+            var expectedCells = Enumerable.Range(0, expected.Length / 2).Select(i => new Position(expected[i * 2], expected[i * 2 + 1]));
+            Assert.Equal(expectedCells.ToHashSet(), cells.ToHashSet());
+        }
+
+        [Fact]
+        public void Rotate_WithDiagonalTarget_IsEmpty()
+        {
+            var (state, caster) = Setup();
+            var area = new PatternArea(AreaShape.Parse(new[] { "#@##" }), AreaAnchor.Target, rotate: true);
+
+            Assert.Empty(area.GetCells(state, caster, new Position(4, 4)));
         }
 
         [Fact]

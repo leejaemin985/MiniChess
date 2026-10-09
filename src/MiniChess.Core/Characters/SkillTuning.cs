@@ -20,5 +20,6 @@ namespace MiniChess.Core.Characters
         public FlameTuning Flame { get; } = new FlameTuning();
         public ChainGuardTuning ChainGuard { get; } = new ChainGuardTuning();
         public SeamstressTuning Seamstress { get; } = new SeamstressTuning();
+        public ScytheTuning Scythe { get; } = new ScytheTuning();
     }
 }
