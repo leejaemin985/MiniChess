@@ -59,7 +59,7 @@ namespace MiniChess.Core.Statuses.Library
         }
 
         /// <summary>
-        /// 이동 거리 제한: 한 턴의 자발적 이동을 누적 maxCells 칸으로 제한. 외부 강제 이동은 막지 않는다.
+        /// 이동 거리 제한: 한 턴의 일반 이동을 누적 maxCells 칸으로 제한. 스킬 이동과 외부 강제 이동은 막지 않는다.
         /// 다시 걸면 남은 횟수를 갱신한다.
         /// </summary>
         /// <param name="maxCells">한 턴에 자발적으로 이동할 수 있는 최대 칸 수(누적).</param>

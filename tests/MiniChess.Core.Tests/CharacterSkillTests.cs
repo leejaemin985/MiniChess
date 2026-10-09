@@ -47,7 +47,7 @@ namespace MiniChess.Core.Tests
         {
             SkillDefinition[] skills = PresetSkills();
 
-            Assert.Equal(10, skills.Length);
+            Assert.Equal(11, skills.Length);
             Assert.All(skills, s => Assert.Empty(s.GetConfigIssues()));
         }
 
@@ -70,7 +70,7 @@ namespace MiniChess.Core.Tests
             var ids = PresetSkills().Select(s => s.Id).ToHashSet();
             var slotted = PieceModules.CreateDefinitions().SelectMany(c => c.SkillSlots).Where(id => id != null).ToList();
 
-            Assert.Equal(10, slotted.Count);
+            Assert.Equal(11, slotted.Count);
             Assert.All(slotted, id => Assert.Contains(id, ids));
         }
 
@@ -504,6 +504,112 @@ namespace MiniChess.Core.Tests
 
             Assert.Single(u[2].Statuses, s => s.Definition.Id == StatusLibrary.DistanceLimitId);
             Assert.Same(u[1], u[2].FindStatus(StatusLibrary.DistanceLimitId).Source);
+        }
+
+        #endregion
+
+        #region Dash
+
+        [Fact]
+        public void Dash_MovesStraight_ThenHitsOnlyTheEnemyDirectlyAhead()
+        {
+            var (state, u) = Game()
+                .Place(Team.Player1, 0, 0, With(WarriorPiece.DashId))
+                .Place(Team.Player2, 0, 4) // 전방
+                .Place(Team.Player2, 1, 4) // 대각선 앞
+                .Start();
+
+            Use(state, u[0], WarriorPiece.DashId, 0, 3);
+
+            Assert.Equal(new Position(0, 3), u[0].Position);
+            Assert.Equal(7, u[1].Stats.CurrentHp);
+            Assert.Equal(10, u[2].Stats.CurrentHp);
+            Assert.Equal(AttackFailReason.AlreadyActed, new AttackAction(u[0], u[1]).Validate(state));
+        }
+
+        [Fact]
+        public void Dash_WithoutEnemyAhead_JustMoves()
+        {
+            var (state, u) = Game()
+                .Place(Team.Player1, 0, 0, With(WarriorPiece.DashId))
+                .Place(Team.Player2, 6, 6)
+                .Start();
+
+            SkillResult result = Use(state, u[0], WarriorPiece.DashId, 0, 2);
+
+            Assert.Equal(new Position(0, 2), u[0].Position);
+            Assert.DoesNotContain(result.Events, e => e is UnitDamagedEvent);
+        }
+
+        [Fact]
+        public void Dash_TargetsOnlyStraightClearCellsInRange()
+        {
+            var (state, u) = Game()
+                .Place(Team.Player1, 0, 0, With(WarriorPiece.DashId))
+                .Place(Team.Player1, 0, 2)
+                .Place(Team.Player2, 6, 6)
+                .Start();
+
+            Assert.Equal(SkillFailReason.None, Check(state, u[0], WarriorPiece.DashId, 0, 1));
+            Assert.Equal(SkillFailReason.InvalidTarget, Check(state, u[0], WarriorPiece.DashId, 0, 3)); // 유닛에 막힘
+            Assert.Equal(SkillFailReason.InvalidTarget, Check(state, u[0], WarriorPiece.DashId, 1, 1)); // 대각선
+            Assert.Equal(SkillFailReason.InvalidTarget, Check(state, u[0], WarriorPiece.DashId, 4, 0)); // 사거리 초과
+        }
+
+        // 사용자 확정: 돌진 중 제어기에 걸려도 피해/상태는 받되 도착 지점까지 간다
+        [Fact]
+        public void Dash_ThroughRootTrap_TakesDamageAndRoot_ButReachesDestination()
+        {
+            var (state, u) = Game()
+                .Place(Team.Player1, 0, 0, With(WarriorPiece.DashId))
+                .Place(Team.Player2, 2, 2, With(ChemistPiece.RootTrapId))
+                .Place(Team.Player2, 0, 4)
+                .Start();
+            EndTurn(state);
+            Use(state, u[1], ChemistPiece.RootTrapId, 0, 2);
+            EndTurn(state);
+
+            Use(state, u[0], WarriorPiece.DashId, 0, 3);
+
+            Assert.Equal(new Position(0, 3), u[0].Position);
+            Assert.Equal(9, u[0].Stats.CurrentHp);
+            Assert.NotNull(u[0].FindStatus(StatusLibrary.RootId));
+            Assert.Equal(7, u[2].Stats.CurrentHp);
+        }
+
+        [Fact]
+        public void Dash_DyingOnTheWay_StopsThere_WithoutAttacking()
+        {
+            var (state, u) = Game()
+                .Place(Team.Player1, 0, 0, With(WarriorPiece.DashId, hp: 1))
+                .Place(Team.Player1, 6, 0)
+                .Place(Team.Player2, 2, 2, With(ChemistPiece.RootTrapId))
+                .Place(Team.Player2, 0, 4)
+                .Start();
+            EndTurn(state);
+            Use(state, u[2], ChemistPiece.RootTrapId, 0, 2);
+            EndTurn(state);
+
+            Use(state, u[0], WarriorPiece.DashId, 0, 3);
+
+            Assert.False(u[0].IsAlive);
+            Assert.Equal(10, u[3].Stats.CurrentHp);
+        }
+
+        // 사용자 확정: 이동 불가 상태면 시전 불가, 이동 거리 제한은 넘어서 사용 가능
+        [Fact]
+        public void Dash_BlockedByRoot_ButIgnoresDistanceLimit()
+        {
+            var (state, u) = Game()
+                .Place(Team.Player1, 0, 0, With(WarriorPiece.DashId))
+                .Place(Team.Player2, 6, 6)
+                .Start();
+
+            Statuses.StatusSystem.Apply(state, StatusLibrary.DistanceLimit(maxCells: 1, targetTurns: 1), u[0], u[1]);
+            Assert.Equal(SkillFailReason.None, Check(state, u[0], WarriorPiece.DashId, 0, 3));
+
+            Statuses.StatusSystem.Apply(state, StatusLibrary.Root(targetTurns: 1, blocksExternalMoves: false), u[0], u[1]);
+            Assert.Equal(SkillFailReason.ConditionNotMet, Check(state, u[0], WarriorPiece.DashId, 0, 3));
         }
 
         #endregion

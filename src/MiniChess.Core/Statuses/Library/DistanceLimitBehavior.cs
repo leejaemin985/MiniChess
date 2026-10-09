@@ -5,7 +5,7 @@ namespace MiniChess.Core.Statuses.Library
 {
     /// <summary>
     /// 이동 거리 제한: 이번 턴 자발적 이동의 누적 칸 수가 MaxCells 를 넘는 이동을 막는다.
-    /// 명령을 나누어도 누적으로 판정한다. 외부 강제 이동은 막지 않는다.
+    /// 명령을 나누어도 누적으로 판정한다. 일반 경로 이동(Path)에만 적용하며, 돌진 등 스킬 이동과 외부 강제 이동은 막지 않는다.
     /// </summary>
     public class DistanceLimitBehavior : StatusBehavior
     {
@@ -18,7 +18,7 @@ namespace MiniChess.Core.Statuses.Library
 
         public override MoveBlockReason CheckMove(StatusContext context, Unit initiator, MoveKind kind, int cells)
         {
-            if (!MovementControl.IsVoluntary(context.Target, initiator))
+            if (kind != MoveKind.Path || !MovementControl.IsVoluntary(context.Target, initiator))
                 return MoveBlockReason.None;
 
             int movedThisTurn = context.Target.TurnState.VoluntaryCellsMoved;

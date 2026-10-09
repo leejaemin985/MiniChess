@@ -121,6 +121,10 @@ namespace MiniChess.Core.Presets
             t.Warrior.Smash.ApCost = 3;
             t.Warrior.Smash.Damage = 5;
 
+            t.Warrior.Dash.ApCost = 3;
+            t.Warrior.Dash.Range = 3;
+            t.Warrior.Dash.Damage = 3;
+
             t.Archer.AimedShot.ApCost = 3;
             t.Archer.AimedShot.Range = 5;
             t.Archer.AimedShot.Damage = 3;
