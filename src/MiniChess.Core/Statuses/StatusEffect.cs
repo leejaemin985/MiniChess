@@ -4,21 +4,21 @@ using MiniChess.Core.Turns;
 
 namespace MiniChess.Core.Statuses
 {
-    /// <summary>유닛에 걸린 상태효과 한 개(인스턴스).</summary>
+    /// <summary>유닛에 실제로 걸린 상태 한 건. 유닛별 진행 값(남은 횟수 등)은 여기에 둔다.</summary>
     public class StatusEffect
     {
         public StatusDefinition Definition { get; }
         public Unit Target { get; }
 
-        /// <summary>건 유닛. 맵 효과 등 유닛이 아닌 출처면 null.</summary>
+        /// <summary>건 유닛. 맵 효과처럼 유닛이 아닌 출처면 null.</summary>
         public Unit Source { get; private set; }
 
-        /// <summary>건 쪽의 팀. Source 가 없어도 시점 판정(SourceOwner)에 사용한다.</summary>
+        /// <summary>건 쪽의 팀. Source 가 없어도 SourceOwner 시점 판정에 쓴다.</summary>
         public Team SourceTeam { get; private set; }
 
         public int Remaining { get; internal set; }
 
-        /// <summary>부여(또는 갱신)된 경기 턴 번호.</summary>
+        /// <summary>걸리거나 갱신된 경기 턴 번호.</summary>
         public int AppliedTurnNumber { get; private set; }
 
         internal StatusEffect(StatusDefinition definition, Unit target, Unit source, Team sourceTeam, int turnNumber)
@@ -28,6 +28,7 @@ namespace MiniChess.Core.Statuses
             Reapply(source, sourceTeam, turnNumber);
         }
 
+        /// <summary>처음 걸린 상태로 되돌린다(Refresh).</summary>
         internal void Reapply(Unit source, Team sourceTeam, int turnNumber)
         {
             Source = source;

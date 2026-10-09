@@ -3,28 +3,23 @@ using MiniChess.Core.Turns;
 
 namespace MiniChess.Core.Statuses
 {
-    /// <summary>시점의 기준이 되는 소유자.</summary>
+    /// <summary>시점을 누구의 턴 기준으로 셀지.</summary>
     public enum TimingOwner
     {
-        /// <summary>효과를 받은 유닛의 소유자 턴.</summary>
+        /// <summary>상태가 걸린 유닛의 팀 턴.</summary>
         TargetOwner,
 
-        /// <summary>효과를 건 쪽의 소유자 턴.</summary>
+        /// <summary>상태를 건 쪽의 팀 턴.</summary>
         SourceOwner,
     }
 
-    /// <summary>
-    /// "누구의 턴, 어느 단계"에 반응하는지. 발동 시점과 지속시간 감소 시점을 각각 이 값으로 지정한다(명세 13.4).
-    /// </summary>
+    /// <summary>"누구의 턴, 어느 단계". 상태의 발동/감소 시점을 지정한다.</summary>
     public class StatusTiming
     {
         public TurnStep Step { get; }
         public TimingOwner Owner { get; }
 
-        /// <summary>
-        /// 부여된 바로 그 턴에 같은 시점이 아직 남아 있을 때 반응할지.
-        /// false 면 부여된 턴의 해당 시점은 건너뛴다(예: 내 턴에 건 효과가 내 턴 종료에 바로 1 소모되지 않게).
-        /// </summary>
+        /// <summary>걸린 그 턴에도 반응할지. false 면 걸린 턴의 해당 단계는 건너뛴다.</summary>
         public bool IncludeApplicationTurn { get; }
 
         public StatusTiming(TurnStep step, TimingOwner owner, bool includeApplicationTurn)
