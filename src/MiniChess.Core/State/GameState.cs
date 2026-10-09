@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using MiniChess.Core.Combat;
 using MiniChess.Core.Common;
 using MiniChess.Core.Data;
@@ -71,6 +72,12 @@ namespace MiniChess.Core.State
         public PlayerState GetPlayer(Team team)
         {
             return _players[team];
+        }
+
+        /// <summary>양 팀의 모든 유닛(죽은 유닛, 보드 밖 유닛 포함). Player1 → Player2 순.</summary>
+        public IEnumerable<Unit> AllUnits()
+        {
+            return GetPlayer(Team.Player1).Units.Concat(GetPlayer(Team.Player2).Units);
         }
 
         /// <summary>새 유닛을 만들어 해당 팀 플레이어에 추가한다. 보드 배치는 별도로 한다.</summary>

@@ -47,7 +47,7 @@ namespace MiniChess.Core.Tests
         {
             SkillDefinition[] skills = PresetSkills();
 
-            Assert.Equal(11, skills.Length);
+            Assert.Equal(12, skills.Length);
             Assert.All(skills, s => Assert.Empty(s.GetConfigIssues()));
         }
 
@@ -70,7 +70,7 @@ namespace MiniChess.Core.Tests
             var ids = PresetSkills().Select(s => s.Id).ToHashSet();
             var slotted = PieceModules.CreateDefinitions().SelectMany(c => c.SkillSlots).Where(id => id != null).ToList();
 
-            Assert.Equal(11, slotted.Count);
+            Assert.Equal(12, slotted.Count);
             Assert.All(slotted, id => Assert.Contains(id, ids));
         }
 
@@ -610,6 +610,165 @@ namespace MiniChess.Core.Tests
 
             Statuses.StatusSystem.Apply(state, StatusLibrary.Root(targetTurns: 1, blocksExternalMoves: false), u[0], u[1]);
             Assert.Equal(SkillFailReason.ConditionNotMet, Check(state, u[0], WarriorPiece.DashId, 0, 3));
+        }
+
+        #endregion
+
+        #region Guard
+
+        private static readonly Statuses.StatusDefinition GuardStatus = StatusLibrary.Guard(maxDistance: 2);
+
+        private static void Hit(GameState state, Unit target, int amount, DamageType type = DamageType.Direct) =>
+            DamageSystem.Apply(state, new DamageRequest(null, target, amount, type));
+
+        // 사용자 확정: 비율 분담 없이 대상이 받을 직접 피해를 호위자가 전부 대신 받는다
+        [Fact]
+        public void Guard_GuardianTakesAllDirectDamageInsteadOfAlly()
+        {
+            var (state, u) = Game()
+                .Place(Team.Player1, 0, 0, With(ChainGuardPiece.GuardId))
+                .Place(Team.Player1, 1, 1)
+                .Place(Team.Player2, 2, 2)
+                .Start();
+
+            Use(state, u[0], ChainGuardPiece.GuardId, 1, 1);
+            EndTurn(state);
+            new AttackAction(u[2], u[1]).Execute(state);
+
+            Assert.Equal(10, u[1].Stats.CurrentHp);
+            Assert.Equal(7, u[0].Stats.CurrentHp);
+            Assert.Contains(state.Events.Since(0), e => e is UnitDamagedEvent d && d.Target == u[0] && d.Type == DamageType.Redirected);
+        }
+
+        [Fact]
+        public void Guard_CannotTargetSelfOrEnemy()
+        {
+            var (state, u) = Game()
+                .Place(Team.Player1, 0, 0, With(ChainGuardPiece.GuardId))
+                .Place(Team.Player2, 1, 1)
+                .Start();
+
+            Assert.Equal(SkillFailReason.InvalidTarget, Check(state, u[0], ChainGuardPiece.GuardId, 0, 0));
+            Assert.Equal(SkillFailReason.InvalidTarget, Check(state, u[0], ChainGuardPiece.GuardId, 1, 1));
+        }
+
+        [Fact]
+        public void Guard_OnlyRedirectsWhileWithinMaxDistanceAtHitTime()
+        {
+            var (state, u) = Game()
+                .Place(Team.Player1, 0, 0)
+                .Place(Team.Player1, 2, 0)
+                .Place(Team.Player2, 6, 6)
+                .Start();
+            Statuses.StatusSystem.Apply(state, GuardStatus, u[1], u[0]);
+
+            new MoveAction(u[1], new Position(3, 0)).Execute(state); // 거리 3
+            Hit(state, u[1], 2);
+            Assert.Equal(8, u[1].Stats.CurrentHp);
+
+            new MoveAction(u[1], new Position(2, 0)).Execute(state); // 다시 거리 2
+            Hit(state, u[1], 2);
+            Assert.Equal(8, u[1].Stats.CurrentHp);
+            Assert.Equal(8, u[0].Stats.CurrentHp);
+        }
+
+        [Theory]
+        [InlineData(DamageType.DoT)]
+        [InlineData(DamageType.Area)]
+        public void Guard_DoesNotRedirectNonDirectDamage(DamageType type)
+        {
+            var (state, u) = Game()
+                .Place(Team.Player1, 0, 0)
+                .Place(Team.Player1, 1, 0)
+                .Place(Team.Player2, 6, 6)
+                .Start();
+            Statuses.StatusSystem.Apply(state, GuardStatus, u[1], u[0]);
+
+            Hit(state, u[1], 2, type);
+
+            Assert.Equal(8, u[1].Stats.CurrentHp);
+            Assert.Equal(10, u[0].Stats.CurrentHp);
+        }
+
+        [Fact]
+        public void Guard_LastsThroughEnemyTurn_AndEndsAtGuardiansNextTurnStart()
+        {
+            var (state, u) = Game()
+                .Place(Team.Player1, 0, 0, With(ChainGuardPiece.GuardId))
+                .Place(Team.Player1, 1, 1)
+                .Place(Team.Player2, 6, 6)
+                .Start();
+
+            Use(state, u[0], ChainGuardPiece.GuardId, 1, 1);
+            EndTurn(state); // P2 턴: 유지
+            Assert.NotNull(u[1].FindStatus(StatusLibrary.GuardId));
+
+            EndTurn(state); // P1 턴 시작: 해제
+            Assert.Null(u[1].FindStatus(StatusLibrary.GuardId));
+            Assert.Empty(state.DamageInterceptors);
+        }
+
+        [Fact]
+        public void Guard_EndsImmediatelyWhenGuardianDies()
+        {
+            var (state, u) = Game()
+                .Place(Team.Player1, 0, 0, TestGame.Stats(hp: 2))
+                .Place(Team.Player1, 1, 0)
+                .Place(Team.Player1, 6, 0)
+                .Place(Team.Player2, 6, 6)
+                .Start();
+            Statuses.StatusSystem.Apply(state, GuardStatus, u[1], u[0]);
+
+            Hit(state, u[1], 5); // 호위자가 대신 받고 사망
+
+            Assert.False(u[0].IsAlive);
+            Assert.Equal(10, u[1].Stats.CurrentHp);
+            Assert.Null(u[1].FindStatus(StatusLibrary.GuardId));
+            Assert.Empty(state.DamageInterceptors);
+
+            Hit(state, u[1], 2);
+            Assert.Equal(8, u[1].Stats.CurrentHp);
+        }
+
+        // 사용자 확정: 호위자당 1명, 대상당 1명
+        [Fact]
+        public void Guard_OneTargetPerGuardian_AndOneGuardianPerTarget()
+        {
+            var (state, u) = Game()
+                .Place(Team.Player1, 0, 0)
+                .Place(Team.Player1, 1, 0)
+                .Place(Team.Player1, 2, 0)
+                .Place(Team.Player2, 6, 6)
+                .Start();
+
+            Statuses.StatusSystem.Apply(state, GuardStatus, u[1], u[0]);
+            Statuses.StatusSystem.Apply(state, GuardStatus, u[2], u[0]); // 같은 호위자가 다른 대상에게
+            Assert.Null(u[1].FindStatus(StatusLibrary.GuardId));
+            Assert.Single(state.DamageInterceptors);
+
+            Statuses.StatusSystem.Apply(state, GuardStatus, u[2], u[1]); // 다른 호위자가 같은 대상에게
+            Assert.Same(u[1], u[2].FindStatus(StatusLibrary.GuardId).Source);
+            Assert.Single(state.DamageInterceptors);
+        }
+
+        // 명세 12.2 [설계안]: 전가된 피해는 다시 다른 호위에 전가하지 않는다
+        [Fact]
+        public void Guard_RedirectedDamageIsNotRedirectedAgain()
+        {
+            var (state, u) = Game()
+                .Place(Team.Player1, 0, 0)
+                .Place(Team.Player1, 1, 0)
+                .Place(Team.Player1, 2, 0)
+                .Place(Team.Player2, 6, 6)
+                .Start();
+            Statuses.StatusSystem.Apply(state, GuardStatus, u[1], u[0]); // u0 가 u1 호위
+            Statuses.StatusSystem.Apply(state, GuardStatus, u[0], u[2]); // u2 가 u0 호위
+
+            Hit(state, u[1], 3);
+
+            Assert.Equal(10, u[1].Stats.CurrentHp);
+            Assert.Equal(7, u[0].Stats.CurrentHp);
+            Assert.Equal(10, u[2].Stats.CurrentHp);
         }
 
         #endregion

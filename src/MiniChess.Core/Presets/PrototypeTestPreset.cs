@@ -166,6 +166,10 @@ namespace MiniChess.Core.Presets
             t.Chemist.PoisonGas.Lifetime = 2;
             t.Chemist.PoisonGas.MaxActive = 1;
 
+            t.ChainGuard.Guard.ApCost = 3;
+            t.ChainGuard.Guard.Range = 2;
+            t.ChainGuard.Guard.MaxDistance = 2;
+
             t.ChainGuard.ChainBind.ApCost = 3;
             t.ChainGuard.ChainBind.Range = 2;
             t.ChainGuard.ChainBind.Damage = 0;

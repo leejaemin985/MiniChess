@@ -22,6 +22,10 @@ namespace MiniChess.Core.Events
         Expired,
         Replaced,
         TargetDied,
+
+        /// <summary>상태를 건 유닛이 사망(RemoveOnSourceDeath 인 상태만).</summary>
+        SourceDied,
+
         Removed,
     }
 

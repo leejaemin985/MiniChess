@@ -28,6 +28,7 @@ namespace MiniChess.Core.Combat
                 state.Board.Remove(unit);
                 state.Events.Record(new UnitDiedEvent(unit, position));
                 StatusSystem.RemoveAll(state, unit, StatusRemoveReason.TargetDied);
+                StatusSystem.RemoveLinkedTo(state, unit);
                 CaptureSystem.OnOccupancyChanged(state);
             }
 

@@ -24,13 +24,17 @@ namespace MiniChess.Core.Statuses
         /// <summary>실제 동작. 표식처럼 존재만 의미 있는 상태면 null.</summary>
         public StatusBehavior Behavior { get; }
 
+        /// <summary>건 유닛이 사망하면 함께 제거되는지(호위처럼 건 유닛과 연결된 상태).</summary>
+        public bool RemoveOnSourceDeath { get; }
+
         public StatusDefinition(
             string id,
             int duration,
             StatusStackPolicy stackPolicy,
             StatusTiming decrement,
             StatusTiming trigger = null,
-            StatusBehavior behavior = null)
+            StatusBehavior behavior = null,
+            bool removeOnSourceDeath = false)
         {
             if (string.IsNullOrEmpty(id)) throw new ArgumentException("상태 Id 가 비어 있음", nameof(id));
             if (duration <= 0) throw new ArgumentOutOfRangeException(nameof(duration), $"상태 '{id}': Duration 은 1 이상");
@@ -41,6 +45,7 @@ namespace MiniChess.Core.Statuses
             Decrement = decrement ?? throw new ArgumentNullException(nameof(decrement));
             Trigger = trigger;
             Behavior = behavior;
+            RemoveOnSourceDeath = removeOnSourceDeath;
         }
     }
 }

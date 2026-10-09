@@ -73,6 +73,18 @@ namespace MiniChess.Core.Statuses
                 Remove(state, status, reason);
         }
 
+        /// <summary>source 가 건 상태 중 RemoveOnSourceDeath 인 것을 모두 제거한다(건 유닛 사망 시).</summary>
+        internal static void RemoveLinkedTo(GameState state, Unit source)
+        {
+            List<StatusEffect> linked = state.AllUnits()
+                .SelectMany(unit => unit.Statuses)
+                .Where(status => status.Source == source && status.Definition.RemoveOnSourceDeath)
+                .ToList();
+
+            foreach (StatusEffect status in linked)
+                Remove(state, status, StatusRemoveReason.SourceDied);
+        }
+
         /// <summary>
         /// 턴 단계 처리. 상태마다 발동(Trigger) 후 감소(Decrement) 순으로 처리한다.
         /// [정책] 처리 순서(유닛 Id → 부여 순)는 명세 TBD 에 대한 임시 결정.
@@ -128,8 +140,7 @@ namespace MiniChess.Core.Statuses
 
         private static IEnumerable<Unit> GetPlacedUnitsById(GameState state)
         {
-            return state.GetPlayer(Team.Player1).Units
-                .Concat(state.GetPlayer(Team.Player2).Units)
+            return state.AllUnits()
                 .Where(unit => unit.IsPlaced)
                 .OrderBy(unit => unit.Id)
                 .ToList();

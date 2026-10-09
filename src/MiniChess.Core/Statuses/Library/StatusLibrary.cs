@@ -11,6 +11,7 @@ namespace MiniChess.Core.Statuses.Library
         public const string RootId = "ROOT";
         public const string BurnId = "BURN";
         public const string DistanceLimitId = "DISTANCE_LIMIT";
+        public const string GuardId = "GUARD";
 
         // 대상 소유자의 턴 종료 단계. 걸린 그 턴은 세지 않아, 1 이면 대상의 다음 자기 턴까지 유지된다.
         private static readonly StatusTiming TargetDurationTick =
@@ -18,6 +19,10 @@ namespace MiniChess.Core.Statuses.Library
 
         private static readonly StatusTiming TargetDamageOverTime =
             new StatusTiming(TurnStep.EndDamageOverTime, TimingOwner.TargetOwner, includeApplicationTurn: false);
+
+        // 건 쪽 소유자의 턴 시작 첫 효과 단계. 1 이면 상대 턴 동안 유지되고 건 쪽의 다음 턴 시작에 풀린다.
+        private static readonly StatusTiming SourceTurnStart =
+            new StatusTiming(TurnStep.StartPositiveEffects, TimingOwner.SourceOwner, includeApplicationTurn: false);
 
         /// <summary>
         /// 속박: 자발적 이동 불가. 공격/스킬은 가능하다.
@@ -75,6 +80,26 @@ namespace MiniChess.Core.Statuses.Library
                 StatusStackPolicy.Refresh,
                 TargetDurationTick,
                 behavior: new DistanceLimitBehavior(maxCells.Value));
+        }
+
+        /// <summary>
+        /// 호위: 받은 유닛의 직접 피해를 건 유닛이 대신 받는다(피해 시점에 maxDistance 이내일 때만).
+        /// 건 쪽의 다음 턴 시작에 풀리며, 건 유닛이 죽으면 즉시 풀린다.
+        /// 한 대상에는 호위자 한 명(새로 걸면 교체), 한 호위자는 한 대상만 호위한다.
+        /// </summary>
+        /// <param name="maxDistance">호위자와 대상 사이 최대 거리(체비셰프).</param>
+        public static StatusDefinition Guard(int? maxDistance)
+        {
+            if (maxDistance == null)
+                return null;
+
+            return new StatusDefinition(
+                GuardId,
+                duration: 1,
+                StatusStackPolicy.Replace,
+                SourceTurnStart,
+                behavior: new GuardBehavior(maxDistance.Value),
+                removeOnSourceDeath: true);
         }
     }
 }
