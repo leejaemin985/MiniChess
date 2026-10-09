@@ -60,8 +60,8 @@ namespace MiniChess.Core.Tests
 
             List<string> trap = skills.Single(s => s.Id == ChemistPiece.RootTrapId).GetConfigIssues();
             Assert.Contains("CHEMIST_ROOT_TRAP.ApCost 미설정", trap);
-            Assert.Contains("CHEMIST_ROOT_TRAP.Conditions[1].SingleUse 미설정", trap);
-            Assert.Contains("CHEMIST_ROOT_TRAP.Conditions[1].Root.BlocksExternalMoves 미설정", trap);
+            Assert.Contains("CHEMIST_ROOT_TRAP.SingleUse 미설정", trap);
+            Assert.Contains("CHEMIST_ROOT_TRAP.Root.BlocksExternalMoves 미설정", trap);
         }
 
         [Fact]

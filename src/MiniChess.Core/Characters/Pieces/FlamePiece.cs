@@ -3,7 +3,6 @@ using MiniChess.Core.Characters.Shared;
 using MiniChess.Core.Data;
 using MiniChess.Core.Skills;
 using MiniChess.Core.Skills.Areas;
-using MiniChess.Core.Skills.Conditions;
 using MiniChess.Core.Skills.Effects;
 using MiniChess.Core.Skills.Targeting;
 using MiniChess.Core.Statuses.Library;
@@ -42,12 +41,9 @@ namespace MiniChess.Core.Characters.Pieces
                 new UnitTargeting(TargetFilter.Enemy, t.Range),
                 new SingleCellArea(),
                 effects,
-                new SkillCondition[]
-                {
-                    new TuningRequirement(
-                        (nameof(t.BurnDamage), t.BurnDamage),
-                        (nameof(t.BurnTriggers), t.BurnTriggers)),
-                });
+                requiredTuning: SkillBuildUtil.Require(
+                    (nameof(t.BurnDamage), t.BurnDamage),
+                    (nameof(t.BurnTriggers), t.BurnTriggers)));
         }
     }
 

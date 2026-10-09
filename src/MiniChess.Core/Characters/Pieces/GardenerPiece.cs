@@ -1,9 +1,9 @@
 using System.Collections.Generic;
+using MiniChess.Core.Characters.Shared;
 using MiniChess.Core.Data;
 using MiniChess.Core.Effects.Zones;
 using MiniChess.Core.Skills;
 using MiniChess.Core.Skills.Areas;
-using MiniChess.Core.Skills.Conditions;
 using MiniChess.Core.Skills.Effects;
 using MiniChess.Core.Skills.Targeting;
 
@@ -46,10 +46,7 @@ namespace MiniChess.Core.Characters.Pieces
                 {
                     new PlaceZoneEffect(t.Lifetime, (zone, _) => new HealField(zone, heal.Value)),
                 },
-                new SkillCondition[]
-                {
-                    new TuningRequirement((nameof(t.Heal), t.Heal)),
-                });
+                requiredTuning: SkillBuildUtil.Require((nameof(t.Heal), t.Heal)));
         }
 
         /// <summary>

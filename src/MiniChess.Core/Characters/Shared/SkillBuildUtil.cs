@@ -13,5 +13,11 @@ namespace MiniChess.Core.Characters.Shared
             if (damage != 0)
                 effects.Add(new DamageEffect(damage));
         }
+
+        /// <summary>SkillDefinition 의 requiredTuning 인자로 넘길 필수 수치 목록. (이름, 값) 순.</summary>
+        public static (string Name, object Value)[] Require(params (string Name, object Value)[] values)
+        {
+            return values;
+        }
     }
 }

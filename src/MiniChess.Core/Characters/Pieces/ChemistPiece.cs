@@ -56,12 +56,12 @@ namespace MiniChess.Core.Characters.Pieces
                 new SkillCondition[]
                 {
                     new MaxActiveZonesCondition(RootTrapId, t.MaxActive),
-                    new TuningRequirement(
-                        (nameof(t.Damage), t.Damage),
-                        (nameof(t.RootTurns), t.RootTurns),
-                        (nameof(t.SingleUse), t.SingleUse),
-                        ("Root." + nameof(root.BlocksExternalMoves), root.BlocksExternalMoves)),
-                });
+                },
+                requiredTuning: SkillBuildUtil.Require(
+                    (nameof(t.Damage), t.Damage),
+                    (nameof(t.RootTurns), t.RootTurns),
+                    (nameof(t.SingleUse), t.SingleUse),
+                    ("Root." + nameof(root.BlocksExternalMoves), root.BlocksExternalMoves)));
         }
 
         /// <summary>독가스 설치: 작은 피해 장판 구역. 적 소유자 Turn End 에 피해(명세 9.3 [설계안]).</summary>
@@ -80,8 +80,8 @@ namespace MiniChess.Core.Characters.Pieces
                 new SkillCondition[]
                 {
                     new MaxActiveZonesCondition(PoisonGasId, t.MaxActive),
-                    new TuningRequirement((nameof(t.Damage), t.Damage)),
-                });
+                },
+                requiredTuning: SkillBuildUtil.Require((nameof(t.Damage), t.Damage)));
         }
     }
 
