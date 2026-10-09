@@ -27,9 +27,8 @@ namespace MiniChess.Core.State
         /// <summary>이 팀의 기본 공격이 적중하면 대상에게 거는 상태(점령 보상 등으로 얻는 팀 버프).</summary>
         public IReadOnlyList<StatusDefinition> BasicAttackStatuses => _basicAttackStatuses;
 
-        /// <summary>유닛이 1개 이상 있고, 그중 살아 있는 유닛이 하나도 없으면 전멸.</summary>
         /// <summary>
-        /// 전멸했는지. 소환물을 셀지는 경기 규칙의 정책을 따른다.
+        /// 유닛이 1개 이상 있고 살아 있는 유닛이 없으면 전멸. 소환물을 셀지는 경기 규칙의 정책을 따른다.
         /// 정책이 Undecided 인데 소환물만 살아 남은 경우 판정할 수 없으므로 GameConfigException.
         /// </summary>
         public bool IsEliminated(SummonEliminationPolicy policy)
