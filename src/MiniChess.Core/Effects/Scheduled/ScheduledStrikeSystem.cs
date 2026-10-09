@@ -18,7 +18,7 @@ namespace MiniChess.Core.Effects.Scheduled
 
         /// <summary>
         /// 예약 효과 단계에서 현재 팀 시전자의 예약을 발사한다(조준한 턴 제외).
-        /// 발사: 범위 안 적에게 장판 피해 → 시전자의 이번 턴 행동 종료 → 예약 제거.
+        /// 발사: 예약 제거 → 범위 안 적에게 장판 피해. 시전자의 행동은 소모하지 않는다.
         /// </summary>
         internal static void RunStep(TurnContext context)
         {
@@ -54,9 +54,7 @@ namespace MiniChess.Core.Effects.Scheduled
             state.RemoveScheduledStrike(strike);
             state.Events.Record(new StrikeLandedEvent(strike));
 
-            // 발사도 시전자의 행동이다: 이 턴에는 이동/행동 불가(사용자 확정).
-            strike.Source.TurnState.EndActions();
-
+            // 발사는 행동이 아니다: 시전자는 발사한 턴에도 행동할 수 있다(사용자 확정).
             foreach (Position position in strike.Cells)
             {
                 if (state.IsGameOver)

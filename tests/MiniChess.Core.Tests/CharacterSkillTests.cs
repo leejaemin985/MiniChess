@@ -973,26 +973,23 @@ namespace MiniChess.Core.Tests
             Assert.Contains(state.Events.Since(0), e => e is UnitDamagedEvent d && d.Target == u[1] && d.Type == DamageType.Area);
         }
 
-        // 사용자 확정: 발사도 행동이라 발사한 턴에는 이동/행동 불가
+        // 사용자 확정: 발사는 행동이 아니다. 발사한 턴에 다시 조준할 수 있다
         [Fact]
-        public void DelayedStrike_FiringTurn_MortarCannotMoveOrAct()
+        public void DelayedStrike_FiringDoesNotUseAction_CanAimAgainSameTurn()
         {
             var (state, u) = Game()
                 .Place(Team.Player1, 0, 0, With(MortarPiece.DelayedStrikeId))
-                .Place(Team.Player2, 1, 1, TestGame.Stats(hp: 20))
+                .Place(Team.Player2, 3, 3, TestGame.Stats(hp: 20))
                 .Start();
 
             Use(state, u[0], MortarPiece.DelayedStrikeId, 3, 3);
             EndTurn(state);
-            EndTurn(state);
+            EndTurn(state); // 착탄
 
-            Assert.True(u[0].TurnState.ActionsEnded);
-            Assert.Equal(MoveFailReason.ActionsEnded, new MoveAction(u[0], new Position(0, 1)).Validate(state));
-            Assert.Equal(AttackFailReason.ActionsEnded, new AttackAction(u[0], u[1]).Validate(state));
-
-            EndTurn(state);
-            EndTurn(state); // 그다음 내 턴: 정상
-            Assert.Equal(MoveFailReason.None, new MoveAction(u[0], new Position(0, 1)).Validate(state));
+            Assert.Equal(14, u[1].Stats.CurrentHp);
+            Assert.False(u[0].TurnState.ActionsEnded);
+            Assert.False(u[0].TurnState.CombatActionUsed);
+            Assert.Equal(SkillFailReason.None, Check(state, u[0], MortarPiece.DelayedStrikeId, 3, 3));
         }
 
         // 사용자 확정: 착탄 위치는 조준한 칸에 고정, 예상하고 움직이면 피할 수 있다
