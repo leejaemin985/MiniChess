@@ -952,8 +952,9 @@ namespace MiniChess.Core.Tests
             var (state, u) = Game()
                 .Place(Team.Player1, 0, 0, With(MortarPiece.DelayedStrikeId))
                 .Place(Team.Player2, 3, 3)
-                .Place(Team.Player2, 4, 4) // 범위 안 (모서리)
-                .Place(Team.Player1, 2, 2) // 범위 안 아군
+                .Place(Team.Player2, 3, 4) // 범위 안 (십자 위)
+                .Place(Team.Player2, 4, 4) // 범위 밖 (대각선)
+                .Place(Team.Player1, 2, 3) // 범위 안 아군
                 .Start();
 
             Use(state, u[0], MortarPiece.DelayedStrikeId, 3, 3);
@@ -967,6 +968,7 @@ namespace MiniChess.Core.Tests
             Assert.Equal(4, u[1].Stats.CurrentHp);
             Assert.Equal(4, u[2].Stats.CurrentHp);
             Assert.Equal(10, u[3].Stats.CurrentHp);
+            Assert.Equal(10, u[4].Stats.CurrentHp);
             Assert.Empty(state.ScheduledStrikes);
             Assert.Contains(state.Events.Since(0), e => e is UnitDamagedEvent d && d.Target == u[1] && d.Type == DamageType.Area);
         }

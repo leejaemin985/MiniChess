@@ -193,9 +193,9 @@ namespace MiniChess.Core.Presets
             t.Mortar.DelayedStrike.Range = 4;
             t.Mortar.DelayedStrike.Area.Shape = new[]
             {
-                "###",
+                ".#.",
                 "#@#",
-                "###",
+                ".#.",
             };
             t.Mortar.DelayedStrike.Damage = 6;
             t.Mortar.DelayedStrike.MaxActive = 1;
