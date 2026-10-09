@@ -77,6 +77,21 @@ namespace MiniChess.Core.Events
         }
     }
 
+    /// <summary>소환물이 생성되어 보드에 놓였다.</summary>
+    public class UnitSummonedEvent : GameEvent
+    {
+        public Unit Owner { get; }
+        public Unit Summon { get; }
+        public Position Position { get; }
+
+        public UnitSummonedEvent(Unit owner, Unit summon, Position position)
+        {
+            Owner = owner;
+            Summon = summon;
+            Position = position;
+        }
+    }
+
     /// <summary>유닛이 사망해 보드에서 제거되었다.</summary>
     public class UnitDiedEvent : GameEvent
     {

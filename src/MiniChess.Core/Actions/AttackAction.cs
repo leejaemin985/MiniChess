@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using MiniChess.Core.Combat;
 using MiniChess.Core.Common;
 using MiniChess.Core.State;
@@ -58,12 +59,15 @@ namespace MiniChess.Core.Actions
         }
 
         /// <summary>
-        /// 팀 버프로 얻은 "기본 공격 적중 시 상태"를 대상에게 건다.
-        /// [가정] 피해가 보호막에 모두 흡수되어도 적중으로 본다. 대상이 죽었거나 경기가 끝났으면 걸지 않는다.
+        /// "기본 공격 적중 시 상태"(공격자 자신의 것 → 팀 버프 순)를 대상에게 건다.
+        /// [가정] 피해가 0 이거나 보호막에 모두 흡수되어도 적중으로 본다. 대상이 죽었거나 경기가 끝났으면 걸지 않는다.
         /// </summary>
         private void ApplyOnHitStatuses(GameState state)
         {
-            foreach (StatusDefinition status in state.GetPlayer(Attacker.Team).BasicAttackStatuses)
+            IEnumerable<StatusDefinition> statuses = Attacker.BasicAttackStatuses
+                .Concat(state.GetPlayer(Attacker.Team).BasicAttackStatuses);
+
+            foreach (StatusDefinition status in statuses.ToList())
             {
                 if (state.IsGameOver || !Target.IsAlive || !Target.IsPlaced)
                     return;

@@ -40,6 +40,8 @@ namespace MiniChess.Core.Presets
                 {
                     UnitsPerTeam = 4,
                     FirstTeam = Team.Player1,
+                    // 사용자 확정: 소환물(분신)은 전멸 판정에서 제외
+                    SummonElimination = SummonEliminationPolicy.ExcludeSummons,
                 },
                 // [프로토타입] 명세 v0.1 3.5. 판정 시점(자기 Turn Start)과 보상 종류는 사용자 확정, 보상 수치는 [가정]
                 Capture = new CaptureRuleData
@@ -208,6 +210,12 @@ namespace MiniChess.Core.Presets
             t.Scythe.Slash.Area.Shape = new[] { "#@##" };
             t.Scythe.Slash.Area.Rotate = true;
             t.Scythe.Slash.Damage = 3;
+
+            t.Scythe.ShadowClone.ApCost = 3;
+            t.Scythe.ShadowClone.CloneHp = 1;
+            t.Scythe.ShadowClone.CloneAttackRange = 1;
+            t.Scythe.ShadowClone.MarkTurns = 2;
+            t.Scythe.ShadowClone.MarkBonusDamage = 2;
 
             t.Seamstress.Warp.ApCost = 3;
             t.Seamstress.Warp.Range = 3;

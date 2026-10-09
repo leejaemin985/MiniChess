@@ -26,6 +26,9 @@ namespace MiniChess.Core.Events
         /// <summary>상태를 건 유닛이 사망(RemoveOnSourceDeath 인 상태만).</summary>
         SourceDied,
 
+        /// <summary>효과를 발휘하고 소모됨(저주 표식 등).</summary>
+        Consumed,
+
         Removed,
     }
 

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using MiniChess.Core.Combat;
 using MiniChess.Core.Common;
 using MiniChess.Core.Events;
 using MiniChess.Core.Movement;
@@ -129,6 +130,19 @@ namespace MiniChess.Core.Statuses
             }
 
             return MoveBlockReason.None;
+        }
+
+        /// <summary>피해를 받은 대상의 상태들에 알린다(부여 순). 처리 중 제거된 상태는 건너뛴다.</summary>
+        internal static void NotifyDamaged(GameState state, Unit target, DamageRequest request)
+        {
+            foreach (StatusEffect status in target.Statuses.ToList())
+            {
+                if (state.IsGameOver || !target.IsAlive)
+                    return;
+
+                if (target.HasStatus(status))
+                    status.Definition.Behavior?.OnDamaged(new StatusContext(state, status), request);
+            }
         }
 
         /// <summary>걸린 상태 중 기본 공격을 막는 것이 있는지.</summary>

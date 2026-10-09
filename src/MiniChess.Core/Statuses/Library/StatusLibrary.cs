@@ -13,6 +13,7 @@ namespace MiniChess.Core.Statuses.Library
         public const string DistanceLimitId = "DISTANCE_LIMIT";
         public const string GuardId = "GUARD";
         public const string InstalledId = "INSTALLED";
+        public const string CurseMarkId = "CURSE_MARK";
 
         // 대상 소유자의 턴 종료 단계. 걸린 그 턴은 세지 않아, 1 이면 대상의 다음 자기 턴까지 유지된다.
         private static readonly StatusTiming TargetDurationTick =
@@ -120,6 +121,25 @@ namespace MiniChess.Core.Statuses.Library
                 StatusStackPolicy.Ignore,
                 decrement: null,
                 behavior: new InstalledBehavior(shieldId, shieldAmount.Value));
+        }
+
+        /// <summary>
+        /// 저주 표식: 표식 소유자(건 유닛의 소환자)의 다음 직접 피해에 추가 피해 1회, 발동하면 소모.
+        /// 스택하지 않으며 다시 걸면 남은 횟수를 갱신한다. 건 유닛(분신)이 죽어도 유지된다.
+        /// </summary>
+        /// <param name="targetTurns">지속 횟수(대상 소유자의 턴 종료 횟수).</param>
+        /// <param name="bonusDamage">발동 시 추가 피해.</param>
+        public static StatusDefinition CurseMark(int? targetTurns, int? bonusDamage)
+        {
+            if (targetTurns == null || bonusDamage == null)
+                return null;
+
+            return new StatusDefinition(
+                CurseMarkId,
+                targetTurns.Value,
+                StatusStackPolicy.Refresh,
+                TargetDurationTick,
+                behavior: new CurseMarkBehavior(bonusDamage.Value));
         }
     }
 }

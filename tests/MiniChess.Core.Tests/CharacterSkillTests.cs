@@ -47,7 +47,7 @@ namespace MiniChess.Core.Tests
         {
             SkillDefinition[] skills = PresetSkills();
 
-            Assert.Equal(17, skills.Length);
+            Assert.Equal(18, skills.Length);
             Assert.All(skills, s => Assert.Empty(s.GetConfigIssues()));
         }
 
@@ -70,7 +70,7 @@ namespace MiniChess.Core.Tests
             var ids = PresetSkills().Select(s => s.Id).ToHashSet();
             var slotted = PieceModules.CreateDefinitions().SelectMany(c => c.SkillSlots).Where(id => id != null).ToList();
 
-            Assert.Equal(17, slotted.Count);
+            Assert.Equal(18, slotted.Count);
             Assert.All(slotted, id => Assert.Contains(id, ids));
         }
 
@@ -1238,6 +1238,176 @@ namespace MiniChess.Core.Tests
             EndTurn(state);
             EndTurn(state); // P1 종료: 수명 0, 제거
             Assert.False(state.Board.GetCell(new Position(0, 2)).HasObstacle);
+        }
+
+        #endregion
+
+        #region Shadow clone
+
+        private static UnitBaseStats Scythe(int range = 1) =>
+            TestGame.Stats("scythe", range: range, skills: new[] { ScythePiece.SlashId, ScythePiece.ShadowCloneId });
+
+        private static Unit CloneOf(GameState state, Unit owner) =>
+            state.GetPlayer(owner.Team).Units.Single(unit => unit.SummonOwner == owner && unit.IsAlive);
+
+        // 명세 4.3 + 사용자 확정: 소환한 턴에 본체는 행동 종료, 분신은 그 턴부터 팀 AP 로 이동/공격
+        [Fact]
+        public void ShadowClone_SummonsAdjacent_EndsOwnerActions_CloneActsSameTurnWithTeamAp()
+        {
+            var (state, u) = Game()
+                .Place(Team.Player1, 3, 0, Scythe())
+                .Place(Team.Player2, 3, 3)
+                .WithRules(r => r.Ap.StartAp = 6)
+                .Start();
+
+            Use(state, u[0], ScythePiece.ShadowCloneId, 3, 1);
+            Unit clone = CloneOf(state, u[0]);
+
+            Assert.True(clone.IsSummon);
+            Assert.Equal(new Position(3, 1), clone.Position);
+            Assert.Equal(1, clone.Stats.CurrentHp);
+            Assert.Equal(MoveFailReason.ActionsEnded, new MoveAction(u[0], new Position(2, 0)).Validate(state));
+
+            new MoveAction(clone, new Position(3, 2)).Execute(state);
+            AttackResult attack = new AttackAction(clone, u[1]).Execute(state);
+
+            Assert.Equal(0, attack.Damage);
+            Assert.NotNull(u[1].FindStatus(StatusLibrary.CurseMarkId));
+            Assert.Equal(0, state.CurrentPlayer.Ap.Current); // 6 - 소환 3 - 이동 1 - 공격 2
+        }
+
+        [Fact]
+        public void ShadowClone_TargetsOnlyEmptyOrthogonalNeighbors()
+        {
+            var (state, u) = Game()
+                .Place(Team.Player1, 3, 0, Scythe())
+                .Place(Team.Player1, 2, 0)
+                .Place(Team.Player2, 6, 6)
+                .Start();
+
+            Assert.Equal(SkillFailReason.InvalidTarget, Check(state, u[0], ScythePiece.ShadowCloneId, 4, 1)); // 대각선
+            Assert.Equal(SkillFailReason.InvalidTarget, Check(state, u[0], ScythePiece.ShadowCloneId, 3, 2)); // 2칸
+            Assert.Equal(SkillFailReason.InvalidTarget, Check(state, u[0], ScythePiece.ShadowCloneId, 2, 0)); // 유닛
+            Assert.Equal(SkillFailReason.None, Check(state, u[0], ScythePiece.ShadowCloneId, 4, 0));
+        }
+
+        [Fact]
+        public void ShadowClone_OnlyOneAlive_CanResummonAfterItDies()
+        {
+            var (state, u) = Game()
+                .Place(Team.Player1, 3, 0, Scythe())
+                .Place(Team.Player2, 6, 6)
+                .Start();
+            Use(state, u[0], ScythePiece.ShadowCloneId, 3, 1);
+            EndTurn(state);
+            EndTurn(state);
+
+            Assert.Equal(SkillFailReason.ConditionNotMet, Check(state, u[0], ScythePiece.ShadowCloneId, 4, 0));
+
+            DamageSystem.Apply(state, new DamageRequest(null, CloneOf(state, u[0]), 1, DamageType.Direct));
+            Assert.Equal(SkillFailReason.None, Check(state, u[0], ScythePiece.ShadowCloneId, 4, 0));
+        }
+
+        // 사용자 확정: 본체가 죽으면 분신도 사라진다. 분신이 죽어도 이미 건 표식은 유지(명세 4.5)
+        [Fact]
+        public void ShadowClone_DiesWithOwner_ButMarkSurvivesCloneDeath()
+        {
+            var (state, u) = Game()
+                .Place(Team.Player1, 3, 0, Scythe())
+                .Place(Team.Player1, 6, 0)
+                .Place(Team.Player2, 3, 2)
+                .WithRules(r => r.Ap.StartAp = 6)
+                .Start();
+            Use(state, u[0], ScythePiece.ShadowCloneId, 3, 1);
+            Unit clone = CloneOf(state, u[0]);
+            new AttackAction(clone, u[2]).Execute(state);
+
+            DamageSystem.Apply(state, new DamageRequest(null, u[0], 99, DamageType.Direct));
+
+            Assert.False(clone.IsAlive);
+            Assert.False(clone.IsPlaced);
+            Assert.NotNull(u[2].FindStatus(StatusLibrary.CurseMarkId));
+        }
+
+        // 사용자 확정: 분신은 점령을 진행하지 못한다
+        [Fact]
+        public void ShadowClone_OnCaptureTile_DoesNotProgressCapture()
+        {
+            var (state, u) = Game()
+                .WithMap(".......", ".......", ".......", "...C...", ".......", ".......", ".......")
+                .Place(Team.Player1, 3, 2, Scythe())
+                .Place(Team.Player2, 6, 6)
+                .Start();
+            Use(state, u[0], ScythePiece.ShadowCloneId, 3, 3); // 점령 칸에 소환
+            EndTurn(state);
+            EndTurn(state);
+
+            Assert.Equal(0, state.Capture.GetProgress(Team.Player1));
+        }
+
+        #endregion
+
+        #region Curse mark
+
+        // 명세 4.5 설계안 + 사용자 확정: 본체의 유효 타격 시 표식 소모, 추가 피해 1회
+        [Fact]
+        public void CurseMark_OwnerBasicAttack_ConsumesMarkAndAddsBonus()
+        {
+            var (state, u) = Game()
+                .Place(Team.Player1, 3, 0, Scythe(range: 2))
+                .Place(Team.Player2, 3, 2)
+                .WithRules(r => r.Ap.StartAp = 6)
+                .Start();
+            Use(state, u[0], ScythePiece.ShadowCloneId, 3, 1);
+            new AttackAction(CloneOf(state, u[0]), u[1]).Execute(state);
+            EndTurn(state);
+            EndTurn(state);
+
+            AttackResult result = new AttackAction(u[0], u[1]).Execute(state);
+
+            Assert.Equal(5, u[1].Stats.CurrentHp); // 기본 3 + 표식 2
+            Assert.Null(u[1].FindStatus(StatusLibrary.CurseMarkId));
+            Assert.Contains(result.Events, e => e is UnitDamagedEvent d && d.Type == DamageType.MarkBonus);
+        }
+
+        [Fact]
+        public void CurseMark_SlashFromOwner_AlsoConsumesMark()
+        {
+            var (state, u) = Game()
+                .Place(Team.Player1, 3, 0, Scythe())
+                .Place(Team.Player2, 3, 2)
+                .WithRules(r => r.Ap.StartAp = 6)
+                .Start();
+            Use(state, u[0], ScythePiece.ShadowCloneId, 4, 0);
+            Unit clone = CloneOf(state, u[0]);
+            new MoveAction(clone, new Position(4, 1)).Execute(state);
+            EndTurn(state);
+            EndTurn(state);
+            new AttackAction(clone, u[1]).Execute(state);
+
+            Use(state, u[0], ScythePiece.SlashId, 3, 2);
+
+            Assert.Equal(5, u[1].Stats.CurrentHp); // 베기 3 + 표식 2
+            Assert.Null(u[1].FindStatus(StatusLibrary.CurseMarkId));
+        }
+
+        [Fact]
+        public void CurseMark_OtherAttackers_DoNotTriggerIt()
+        {
+            var (state, u) = Game()
+                .Place(Team.Player1, 3, 0, Scythe())
+                .Place(Team.Player1, 2, 2)
+                .Place(Team.Player2, 3, 2)
+                .WithRules(r => r.Ap.StartAp = 6)
+                .Start();
+            Use(state, u[0], ScythePiece.ShadowCloneId, 3, 1);
+            new AttackAction(CloneOf(state, u[0]), u[2]).Execute(state);
+            state.GetPlayer(Team.Player1).Ap.Recover(6);
+
+            new AttackAction(u[1], u[2]).Execute(state);
+
+            Assert.Equal(7, u[2].Stats.CurrentHp);
+            Assert.NotNull(u[2].FindStatus(StatusLibrary.CurseMarkId));
         }
 
         #endregion

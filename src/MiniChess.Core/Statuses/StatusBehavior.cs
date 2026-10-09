@@ -1,3 +1,4 @@
+using MiniChess.Core.Combat;
 using MiniChess.Core.Movement;
 using MiniChess.Core.State;
 
@@ -30,6 +31,9 @@ namespace MiniChess.Core.Statuses
 
         /// <summary>정의의 Trigger 시점마다 호출된다.</summary>
         public virtual void OnTrigger(StatusContext context) { }
+
+        /// <summary>대상이 피해를 받은 뒤(보호막/HP 처리 후, 살아 있을 때만) 호출된다. 피해가 0 이어도 호출된다.</summary>
+        public virtual void OnDamaged(StatusContext context, DamageRequest request) { }
 
         /// <summary>이 상태가 대상의 기본 공격을 막는지.</summary>
         public virtual bool BlocksBasicAttack(StatusContext context)

@@ -9,6 +9,7 @@ namespace MiniChess.Core.State
     public class Unit
     {
         private readonly List<StatusEffect> _statuses = new List<StatusEffect>();
+        private readonly List<StatusDefinition> _basicAttackStatuses = new List<StatusDefinition>();
 
         public int Id { get; }
         public Team Team { get; }
@@ -20,8 +21,14 @@ namespace MiniChess.Core.State
         /// <summary>자기 소유자의 이번 턴 행동 기록(전투 행동 사용, 이동 잠금 등).</summary>
         public UnitTurnState TurnState { get; } = new UnitTurnState();
 
-        /// <summary>소환물(분신 등)인지. 소환 시스템이 생기기 전까지는 항상 false.</summary>
+        /// <summary>소환물(분신 등)인지. 점령/전멸 판정에서 다르게 취급된다.</summary>
         public bool IsSummon { get; internal set; }
+
+        /// <summary>이 소환물을 소환한 유닛. 소환물이 아니면 null.</summary>
+        public Unit SummonOwner { get; internal set; }
+
+        /// <summary>이 유닛의 기본 공격이 적중하면 대상에게 거는 상태(분신의 저주 표식 등). 팀 버프와 별개.</summary>
+        public IReadOnlyList<StatusDefinition> BasicAttackStatuses => _basicAttackStatuses;
 
         public bool IsAlive => Stats.IsAlive;
         public bool IsPlaced => Position.HasValue;
@@ -59,6 +66,11 @@ namespace MiniChess.Core.State
         internal bool RemoveStatus(StatusEffect status)
         {
             return _statuses.Remove(status);
+        }
+
+        internal void AddBasicAttackStatus(StatusDefinition status)
+        {
+            _basicAttackStatuses.Add(status);
         }
 
         /// <summary>소유 플레이어의 턴 시작 시 호출한다.</summary>

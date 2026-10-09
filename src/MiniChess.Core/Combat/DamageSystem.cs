@@ -3,12 +3,13 @@ using System.Collections.Generic;
 using System.Linq;
 using MiniChess.Core.Events;
 using MiniChess.Core.State;
+using MiniChess.Core.Statuses;
 
 namespace MiniChess.Core.Combat
 {
     /// <summary>
     /// 모든 피해/회복의 단일 처리 경로.
-    /// 처리 순서: 가로채기(Order 순) → 보호막 흡수 → HP 적용 → 이벤트 기록 → 사망·승패 판정.
+    /// 처리 순서: 가로채기(Order 순) → 보호막 흡수 → HP 적용 → 이벤트 기록 → 사망·승패 판정 → (생존 시) 상태효과 OnDamaged.
     /// </summary>
     public static class DamageSystem
     {
@@ -47,6 +48,9 @@ namespace MiniChess.Core.Combat
             }
 
             bool killed = DeathSystem.HandleIfDead(state, target);
+            if (!killed && !state.IsGameOver)
+                StatusSystem.NotifyDamaged(state, target, request);
+
             return new DamageOutcome(applied, killed);
         }
 
